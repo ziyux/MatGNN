@@ -45,14 +45,6 @@ class DatasetPartition(DGLDataset):
                                                force_reload=force_reload,
                                                verbose=verbose)
 
-    def download(self):
-        # download raw data to local disk
-        pass
-
-    def process(self):
-        # process raw data to graphs, labels, splitting masks
-        pass
-
     def __getitem__(self, idx):
         # get one example by index
         g = self.dataset[self.mask[idx]][0]
@@ -62,18 +54,6 @@ class DatasetPartition(DGLDataset):
     def __len__(self):
         # number of data examples
         return len(self.mask)
-
-    def save(self):
-        # save processed data to directory `self.save_path`
-        pass
-
-    def load(self):
-        # load processed data from directory `self.save_path`
-        pass
-
-    def has_cache(self):
-        # check whether there are processed data in `self.save_path`
-        pass
 
 
 class QM9(DGLDataset):
@@ -110,11 +90,11 @@ class QM9(DGLDataset):
         self.edge_fea_keys = {'bonds': range(0, 3)}
         self.edge_fea_dtypes = {'bonds': th.int64, 'D': th.float32, 'GD': th.float32}
         super(QM9, self).__init__(name=dataset_name,
-                                      url=url,
-                                      raw_dir=raw_dir,
-                                      save_dir=save_dir,
-                                      force_reload=force_reload,
-                                      verbose=verbose)
+                                  url=url,
+                                  raw_dir=raw_dir,
+                                  save_dir=save_dir,
+                                  force_reload=force_reload,
+                                  verbose=verbose)
 
     def get_url(self, dataset_name):
         url = _get_dgl_url('dataset/qm9_edge.npz')
@@ -193,4 +173,3 @@ class QM9(DGLDataset):
         # filename = os.path.join(self.raw_dir, self.name+'_data.pkl')
         # return os.path.exists(filename)
         pass
-
