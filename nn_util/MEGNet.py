@@ -14,7 +14,7 @@ class MEGNet(nn.Module):
     def __init__(self,
                  in_feats,
                  in_efeats,
-                 megnet_num=2,
+                 megnet_num=3,
                  dim1=64,
                  dim2=32,
                  act='relu',

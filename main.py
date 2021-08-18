@@ -17,7 +17,7 @@ train_rate = 0.90
 val_rate = 0.05
 test_rate = 0.05
 act = 'relu'
-resume = True
+resume = False
 
 mpnn = lambda feat, efeat: MEGNet(feat, efeat,
                                   megnet_num=3,
@@ -45,21 +45,6 @@ nn = MatGNN(dataset_name=dataset_name,
             train_rate=train_rate,
             val_rate=val_rate,
             test_rate=test_rate,
-            resume=resume,
-            resume_model='bestmodel.tar')
+            resume=resume)
 
-# nn.train()
-# num_nodes = nn.dataset[0][0].num_nodes()
-# print(num_nodes)
-# print(nn.dataset[0][0].num_edges())
-# edge_index = [torch.tensor(i, dtype=torch.long) for i in nn.dataset[0][0].edges()]
-
-# dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(nn.dataset[0][0].ndata['R'], edge_index, num_nodes, use_torsion=True)
-# # print(len(dist))
-# # print(len(angle))
-# # print(len(torsion))
-# # print(len(i))
-# print(len(idx_kj))
-# print(len(idx_ji))
-
-nn.score()
+nn.train()

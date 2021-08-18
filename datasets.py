@@ -45,6 +45,14 @@ class DatasetPartition(DGLDataset):
                                                force_reload=force_reload,
                                                verbose=verbose)
 
+    def download(self):
+        # download raw data to local disk
+        pass
+
+    def process(self):
+        # process raw data to graphs, labels, splitting masks
+        pass
+
     def __getitem__(self, idx):
         # get one example by index
         g = self.dataset[self.mask[idx]][0]
@@ -54,6 +62,18 @@ class DatasetPartition(DGLDataset):
     def __len__(self):
         # number of data examples
         return len(self.mask)
+
+    def save(self):
+        # save processed data to directory `self.save_path`
+        pass
+
+    def load(self):
+        # load processed data from directory `self.save_path`
+        pass
+
+    def has_cache(self):
+        # check whether there are processed data in `self.save_path`
+        pass
 
 
 class QM9(DGLDataset):

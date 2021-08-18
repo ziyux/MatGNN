@@ -98,7 +98,7 @@ class MatGNN(object):
             self.train_mask, self.val_mask, self.test_mask = self.train_test_split(train_rate, val_rate, test_rate)
         self.get_loader()
 
-    def train(self, MAX_ITER=2000, model_name=None):
+    def train(self, MAX_ITER=3000, model_name=None):
         if model_name is not None:
             self.load_model(model_name)
             self.get_loader()
