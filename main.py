@@ -1,4 +1,4 @@
-from MatGNN import MatGNN
+from matgnn import MatGNN
 from nn import NNBase
 from nn_util.MEGNet import MEGNet
 import torch.nn as F
