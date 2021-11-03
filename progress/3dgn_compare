@@ -62,10 +62,6 @@ SphereNet(
   )
   (update_es): ModuleList(
     (0): update_e(
-      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
-      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
-      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
-      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
       (lin_t1): Linear(in_features=54, out_features=8, bias=False)
       (lin_t2): Linear(in_features=8, out_features=64, bias=False)
       (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
@@ -92,10 +88,6 @@ SphereNet(
       )
     )
     (1): update_e(
-      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
-      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
-      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
-      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
       (lin_t1): Linear(in_features=54, out_features=8, bias=False)
       (lin_t2): Linear(in_features=8, out_features=64, bias=False)
       (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
@@ -122,10 +114,6 @@ SphereNet(
       )
     )
     (2): update_e(
-      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
-      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
-      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
-      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
       (lin_t1): Linear(in_features=54, out_features=8, bias=False)
       (lin_t2): Linear(in_features=8, out_features=64, bias=False)
       (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
@@ -152,10 +140,6 @@ SphereNet(
       )
     )
     (3): update_e(
-      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
-      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
-      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
-      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
       (lin_t1): Linear(in_features=54, out_features=8, bias=False)
       (lin_t2): Linear(in_features=8, out_features=64, bias=False)
       (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
@@ -293,14 +277,6 @@ update_vs.3.lins.2.bias
 [256] 256
 update_vs.3.lin.weight
 [1, 256] 256
-update_es.0.lin_rbf1.weight
-[8, 6] 48
-update_es.0.lin_rbf2.weight
-[128, 8] 1024
-update_es.0.lin_sbf1.weight
-[8, 18] 144
-update_es.0.lin_sbf2.weight
-[64, 8] 512
 update_es.0.lin_t1.weight
 [8, 54] 432
 update_es.0.lin_t2.weight
@@ -347,14 +323,6 @@ update_es.0.layers_after_skip.1.lin2.weight
 [128, 128] 16384
 update_es.0.layers_after_skip.1.lin2.bias
 [128] 128
-update_es.1.lin_rbf1.weight
-[8, 6] 48
-update_es.1.lin_rbf2.weight
-[128, 8] 1024
-update_es.1.lin_sbf1.weight
-[8, 18] 144
-update_es.1.lin_sbf2.weight
-[64, 8] 512
 update_es.1.lin_t1.weight
 [8, 54] 432
 update_es.1.lin_t2.weight
@@ -401,14 +369,6 @@ update_es.1.layers_after_skip.1.lin2.weight
 [128, 128] 16384
 update_es.1.layers_after_skip.1.lin2.bias
 [128] 128
-update_es.2.lin_rbf1.weight
-[8, 6] 48
-update_es.2.lin_rbf2.weight
-[128, 8] 1024
-update_es.2.lin_sbf1.weight
-[8, 18] 144
-update_es.2.lin_sbf2.weight
-[64, 8] 512
 update_es.2.lin_t1.weight
 [8, 54] 432
 update_es.2.lin_t2.weight
@@ -455,14 +415,6 @@ update_es.2.layers_after_skip.1.lin2.weight
 [128, 128] 16384
 update_es.2.layers_after_skip.1.lin2.bias
 [128] 128
-update_es.3.lin_rbf1.weight
-[8, 6] 48
-update_es.3.lin_rbf2.weight
-[128, 8] 1024
-update_es.3.lin_sbf1.weight
-[8, 18] 144
-update_es.3.lin_sbf2.weight
-[64, 8] 512
 update_es.3.lin_t1.weight
 [8, 54] 432
 update_es.3.lin_t2.weight
@@ -509,4 +461,4 @@ update_es.3.layers_after_skip.1.lin2.weight
 [128, 128] 16384
 update_es.3.layers_after_skip.1.lin2.bias
 [128] 128
-1890118
+1883206
