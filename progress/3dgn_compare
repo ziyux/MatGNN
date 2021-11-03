@@ -1,148 +1,489 @@
-SchNet(
-  (init_v): Embedding(100, 128)
-  (dist_emb): emb()
+DimeNetPP(
+  (init_e): init(
+    (emb): Embedding(95, 128)
+    (lin_rbf_0): Linear(in_features=6, out_features=128, bias=True)
+    (lin): Linear(in_features=384, out_features=128, bias=True)
+    (lin_rbf_1): Linear(in_features=6, out_features=128, bias=False)
+  )
+  (init_v): update_v(
+    (lin_up): Linear(in_features=128, out_features=256, bias=True)
+    (lins): ModuleList(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): Linear(in_features=256, out_features=256, bias=True)
+      (2): Linear(in_features=256, out_features=256, bias=True)
+    )
+    (lin): Linear(in_features=256, out_features=1, bias=False)
+  )
+  (init_u): update_u()
+  (emb): emb(
+    (dist_emb): dist_emb(
+      (envelope): Envelope()
+    )
+    (angle_emb): angle_emb(
+      (envelope): Envelope()
+    )
+  )
   (update_vs): ModuleList(
     (0): update_v(
-      (act): ShiftedSoftplus()
-      (lin1): Linear(in_features=64, out_features=128, bias=True)
-      (lin2): Linear(in_features=128, out_features=128, bias=True)
+      (lin_up): Linear(in_features=128, out_features=256, bias=True)
+      (lins): ModuleList(
+        (0): Linear(in_features=256, out_features=256, bias=True)
+        (1): Linear(in_features=256, out_features=256, bias=True)
+        (2): Linear(in_features=256, out_features=256, bias=True)
+      )
+      (lin): Linear(in_features=256, out_features=1, bias=False)
     )
     (1): update_v(
-      (act): ShiftedSoftplus()
-      (lin1): Linear(in_features=64, out_features=128, bias=True)
-      (lin2): Linear(in_features=128, out_features=128, bias=True)
+      (lin_up): Linear(in_features=128, out_features=256, bias=True)
+      (lins): ModuleList(
+        (0): Linear(in_features=256, out_features=256, bias=True)
+        (1): Linear(in_features=256, out_features=256, bias=True)
+        (2): Linear(in_features=256, out_features=256, bias=True)
+      )
+      (lin): Linear(in_features=256, out_features=1, bias=False)
     )
     (2): update_v(
-      (act): ShiftedSoftplus()
-      (lin1): Linear(in_features=64, out_features=128, bias=True)
-      (lin2): Linear(in_features=128, out_features=128, bias=True)
+      (lin_up): Linear(in_features=128, out_features=256, bias=True)
+      (lins): ModuleList(
+        (0): Linear(in_features=256, out_features=256, bias=True)
+        (1): Linear(in_features=256, out_features=256, bias=True)
+        (2): Linear(in_features=256, out_features=256, bias=True)
+      )
+      (lin): Linear(in_features=256, out_features=1, bias=False)
     )
     (3): update_v(
-      (act): ShiftedSoftplus()
-      (lin1): Linear(in_features=64, out_features=128, bias=True)
-      (lin2): Linear(in_features=128, out_features=128, bias=True)
+      (lin_up): Linear(in_features=128, out_features=256, bias=True)
+      (lins): ModuleList(
+        (0): Linear(in_features=256, out_features=256, bias=True)
+        (1): Linear(in_features=256, out_features=256, bias=True)
+        (2): Linear(in_features=256, out_features=256, bias=True)
+      )
+      (lin): Linear(in_features=256, out_features=1, bias=False)
     )
   )
   (update_es): ModuleList(
     (0): update_e(
-      (lin): Linear(in_features=128, out_features=64, bias=False)
-      (mlp): Sequential(
-        (0): Linear(in_features=31, out_features=64, bias=True)
-        (1): ShiftedSoftplus()
-        (2): Linear(in_features=64, out_features=64, bias=True)
+      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
+      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
+      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
+      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
+      (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
+      (lin_kj): Linear(in_features=128, out_features=128, bias=True)
+      (lin_ji): Linear(in_features=128, out_features=128, bias=True)
+      (lin_down): Linear(in_features=128, out_features=64, bias=False)
+      (lin_up): Linear(in_features=64, out_features=128, bias=False)
+      (layers_before_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+      )
+      (lin): Linear(in_features=128, out_features=128, bias=True)
+      (layers_after_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+        (1): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
       )
     )
     (1): update_e(
-      (lin): Linear(in_features=128, out_features=64, bias=False)
-      (mlp): Sequential(
-        (0): Linear(in_features=31, out_features=64, bias=True)
-        (1): ShiftedSoftplus()
-        (2): Linear(in_features=64, out_features=64, bias=True)
+      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
+      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
+      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
+      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
+      (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
+      (lin_kj): Linear(in_features=128, out_features=128, bias=True)
+      (lin_ji): Linear(in_features=128, out_features=128, bias=True)
+      (lin_down): Linear(in_features=128, out_features=64, bias=False)
+      (lin_up): Linear(in_features=64, out_features=128, bias=False)
+      (layers_before_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+      )
+      (lin): Linear(in_features=128, out_features=128, bias=True)
+      (layers_after_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+        (1): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
       )
     )
     (2): update_e(
-      (lin): Linear(in_features=128, out_features=64, bias=False)
-      (mlp): Sequential(
-        (0): Linear(in_features=31, out_features=64, bias=True)
-        (1): ShiftedSoftplus()
-        (2): Linear(in_features=64, out_features=64, bias=True)
+      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
+      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
+      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
+      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
+      (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
+      (lin_kj): Linear(in_features=128, out_features=128, bias=True)
+      (lin_ji): Linear(in_features=128, out_features=128, bias=True)
+      (lin_down): Linear(in_features=128, out_features=64, bias=False)
+      (lin_up): Linear(in_features=64, out_features=128, bias=False)
+      (layers_before_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+      )
+      (lin): Linear(in_features=128, out_features=128, bias=True)
+      (layers_after_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+        (1): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
       )
     )
     (3): update_e(
-      (lin): Linear(in_features=128, out_features=64, bias=False)
-      (mlp): Sequential(
-        (0): Linear(in_features=31, out_features=64, bias=True)
-        (1): ShiftedSoftplus()
-        (2): Linear(in_features=64, out_features=64, bias=True)
+      (lin_rbf1): Linear(in_features=6, out_features=8, bias=False)
+      (lin_rbf2): Linear(in_features=8, out_features=128, bias=False)
+      (lin_sbf1): Linear(in_features=18, out_features=8, bias=False)
+      (lin_sbf2): Linear(in_features=8, out_features=64, bias=False)
+      (lin_rbf): Linear(in_features=6, out_features=128, bias=False)
+      (lin_kj): Linear(in_features=128, out_features=128, bias=True)
+      (lin_ji): Linear(in_features=128, out_features=128, bias=True)
+      (lin_down): Linear(in_features=128, out_features=64, bias=False)
+      (lin_up): Linear(in_features=64, out_features=128, bias=False)
+      (layers_before_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+      )
+      (lin): Linear(in_features=128, out_features=128, bias=True)
+      (layers_after_skip): ModuleList(
+        (0): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
+        (1): ResidualLayer(
+          (lin1): Linear(in_features=128, out_features=128, bias=True)
+          (lin2): Linear(in_features=128, out_features=128, bias=True)
+        )
       )
     )
   )
-  (update_u): update_u(
-    (lin1): Linear(in_features=128, out_features=64, bias=True)
-    (act): ShiftedSoftplus()
-    (lin2): Linear(in_features=64, out_features=1, bias=True)
+  (update_us): ModuleList(
+    (0): update_u()
+    (1): update_u()
+    (2): update_u()
+    (3): update_u()
   )
 )
-init_v.weight
-[100, 128] 12800
-update_vs.0.lin1.weight
-[128, 64] 8192
-update_vs.0.lin1.bias
+init_e.emb.weight
+[95, 128] 12160
+init_e.lin_rbf_0.weight
+[128, 6] 768
+init_e.lin_rbf_0.bias
 [128] 128
-update_vs.0.lin2.weight
+init_e.lin.weight
+[128, 384] 49152
+init_e.lin.bias
+[128] 128
+init_e.lin_rbf_1.weight
+[128, 6] 768
+init_v.lin_up.weight
+[256, 128] 32768
+init_v.lin_up.bias
+[256] 256
+init_v.lins.0.weight
+[256, 256] 65536
+init_v.lins.0.bias
+[256] 256
+init_v.lins.1.weight
+[256, 256] 65536
+init_v.lins.1.bias
+[256] 256
+init_v.lins.2.weight
+[256, 256] 65536
+init_v.lins.2.bias
+[256] 256
+init_v.lin.weight
+[1, 256] 256
+emb.dist_emb.freq
+[6] 6
+update_vs.0.lin_up.weight
+[256, 128] 32768
+update_vs.0.lin_up.bias
+[256] 256
+update_vs.0.lins.0.weight
+[256, 256] 65536
+update_vs.0.lins.0.bias
+[256] 256
+update_vs.0.lins.1.weight
+[256, 256] 65536
+update_vs.0.lins.1.bias
+[256] 256
+update_vs.0.lins.2.weight
+[256, 256] 65536
+update_vs.0.lins.2.bias
+[256] 256
+update_vs.0.lin.weight
+[1, 256] 256
+update_vs.1.lin_up.weight
+[256, 128] 32768
+update_vs.1.lin_up.bias
+[256] 256
+update_vs.1.lins.0.weight
+[256, 256] 65536
+update_vs.1.lins.0.bias
+[256] 256
+update_vs.1.lins.1.weight
+[256, 256] 65536
+update_vs.1.lins.1.bias
+[256] 256
+update_vs.1.lins.2.weight
+[256, 256] 65536
+update_vs.1.lins.2.bias
+[256] 256
+update_vs.1.lin.weight
+[1, 256] 256
+update_vs.2.lin_up.weight
+[256, 128] 32768
+update_vs.2.lin_up.bias
+[256] 256
+update_vs.2.lins.0.weight
+[256, 256] 65536
+update_vs.2.lins.0.bias
+[256] 256
+update_vs.2.lins.1.weight
+[256, 256] 65536
+update_vs.2.lins.1.bias
+[256] 256
+update_vs.2.lins.2.weight
+[256, 256] 65536
+update_vs.2.lins.2.bias
+[256] 256
+update_vs.2.lin.weight
+[1, 256] 256
+update_vs.3.lin_up.weight
+[256, 128] 32768
+update_vs.3.lin_up.bias
+[256] 256
+update_vs.3.lins.0.weight
+[256, 256] 65536
+update_vs.3.lins.0.bias
+[256] 256
+update_vs.3.lins.1.weight
+[256, 256] 65536
+update_vs.3.lins.1.bias
+[256] 256
+update_vs.3.lins.2.weight
+[256, 256] 65536
+update_vs.3.lins.2.bias
+[256] 256
+update_vs.3.lin.weight
+[1, 256] 256
+update_es.0.lin_rbf1.weight
+[8, 6] 48
+update_es.0.lin_rbf2.weight
+[128, 8] 1024
+update_es.0.lin_sbf1.weight
+[8, 18] 144
+update_es.0.lin_sbf2.weight
+[64, 8] 512
+update_es.0.lin_rbf.weight
+[128, 6] 768
+update_es.0.lin_kj.weight
 [128, 128] 16384
-update_vs.0.lin2.bias
+update_es.0.lin_kj.bias
 [128] 128
-update_vs.1.lin1.weight
-[128, 64] 8192
-update_vs.1.lin1.bias
-[128] 128
-update_vs.1.lin2.weight
+update_es.0.lin_ji.weight
 [128, 128] 16384
-update_vs.1.lin2.bias
+update_es.0.lin_ji.bias
 [128] 128
-update_vs.2.lin1.weight
+update_es.0.lin_down.weight
+[64, 128] 8192
+update_es.0.lin_up.weight
 [128, 64] 8192
-update_vs.2.lin1.bias
-[128] 128
-update_vs.2.lin2.weight
+update_es.0.layers_before_skip.0.lin1.weight
 [128, 128] 16384
-update_vs.2.lin2.bias
+update_es.0.layers_before_skip.0.lin1.bias
 [128] 128
-update_vs.3.lin1.weight
-[128, 64] 8192
-update_vs.3.lin1.bias
-[128] 128
-update_vs.3.lin2.weight
+update_es.0.layers_before_skip.0.lin2.weight
 [128, 128] 16384
-update_vs.3.lin2.bias
+update_es.0.layers_before_skip.0.lin2.bias
 [128] 128
 update_es.0.lin.weight
+[128, 128] 16384
+update_es.0.lin.bias
+[128] 128
+update_es.0.layers_after_skip.0.lin1.weight
+[128, 128] 16384
+update_es.0.layers_after_skip.0.lin1.bias
+[128] 128
+update_es.0.layers_after_skip.0.lin2.weight
+[128, 128] 16384
+update_es.0.layers_after_skip.0.lin2.bias
+[128] 128
+update_es.0.layers_after_skip.1.lin1.weight
+[128, 128] 16384
+update_es.0.layers_after_skip.1.lin1.bias
+[128] 128
+update_es.0.layers_after_skip.1.lin2.weight
+[128, 128] 16384
+update_es.0.layers_after_skip.1.lin2.bias
+[128] 128
+update_es.1.lin_rbf1.weight
+[8, 6] 48
+update_es.1.lin_rbf2.weight
+[128, 8] 1024
+update_es.1.lin_sbf1.weight
+[8, 18] 144
+update_es.1.lin_sbf2.weight
+[64, 8] 512
+update_es.1.lin_rbf.weight
+[128, 6] 768
+update_es.1.lin_kj.weight
+[128, 128] 16384
+update_es.1.lin_kj.bias
+[128] 128
+update_es.1.lin_ji.weight
+[128, 128] 16384
+update_es.1.lin_ji.bias
+[128] 128
+update_es.1.lin_down.weight
 [64, 128] 8192
-update_es.0.mlp.0.weight
-[64, 31] 1984
-update_es.0.mlp.0.bias
-[64] 64
-update_es.0.mlp.2.weight
-[64, 64] 4096
-update_es.0.mlp.2.bias
-[64] 64
+update_es.1.lin_up.weight
+[128, 64] 8192
+update_es.1.layers_before_skip.0.lin1.weight
+[128, 128] 16384
+update_es.1.layers_before_skip.0.lin1.bias
+[128] 128
+update_es.1.layers_before_skip.0.lin2.weight
+[128, 128] 16384
+update_es.1.layers_before_skip.0.lin2.bias
+[128] 128
 update_es.1.lin.weight
+[128, 128] 16384
+update_es.1.lin.bias
+[128] 128
+update_es.1.layers_after_skip.0.lin1.weight
+[128, 128] 16384
+update_es.1.layers_after_skip.0.lin1.bias
+[128] 128
+update_es.1.layers_after_skip.0.lin2.weight
+[128, 128] 16384
+update_es.1.layers_after_skip.0.lin2.bias
+[128] 128
+update_es.1.layers_after_skip.1.lin1.weight
+[128, 128] 16384
+update_es.1.layers_after_skip.1.lin1.bias
+[128] 128
+update_es.1.layers_after_skip.1.lin2.weight
+[128, 128] 16384
+update_es.1.layers_after_skip.1.lin2.bias
+[128] 128
+update_es.2.lin_rbf1.weight
+[8, 6] 48
+update_es.2.lin_rbf2.weight
+[128, 8] 1024
+update_es.2.lin_sbf1.weight
+[8, 18] 144
+update_es.2.lin_sbf2.weight
+[64, 8] 512
+update_es.2.lin_rbf.weight
+[128, 6] 768
+update_es.2.lin_kj.weight
+[128, 128] 16384
+update_es.2.lin_kj.bias
+[128] 128
+update_es.2.lin_ji.weight
+[128, 128] 16384
+update_es.2.lin_ji.bias
+[128] 128
+update_es.2.lin_down.weight
 [64, 128] 8192
-update_es.1.mlp.0.weight
-[64, 31] 1984
-update_es.1.mlp.0.bias
-[64] 64
-update_es.1.mlp.2.weight
-[64, 64] 4096
-update_es.1.mlp.2.bias
-[64] 64
+update_es.2.lin_up.weight
+[128, 64] 8192
+update_es.2.layers_before_skip.0.lin1.weight
+[128, 128] 16384
+update_es.2.layers_before_skip.0.lin1.bias
+[128] 128
+update_es.2.layers_before_skip.0.lin2.weight
+[128, 128] 16384
+update_es.2.layers_before_skip.0.lin2.bias
+[128] 128
 update_es.2.lin.weight
+[128, 128] 16384
+update_es.2.lin.bias
+[128] 128
+update_es.2.layers_after_skip.0.lin1.weight
+[128, 128] 16384
+update_es.2.layers_after_skip.0.lin1.bias
+[128] 128
+update_es.2.layers_after_skip.0.lin2.weight
+[128, 128] 16384
+update_es.2.layers_after_skip.0.lin2.bias
+[128] 128
+update_es.2.layers_after_skip.1.lin1.weight
+[128, 128] 16384
+update_es.2.layers_after_skip.1.lin1.bias
+[128] 128
+update_es.2.layers_after_skip.1.lin2.weight
+[128, 128] 16384
+update_es.2.layers_after_skip.1.lin2.bias
+[128] 128
+update_es.3.lin_rbf1.weight
+[8, 6] 48
+update_es.3.lin_rbf2.weight
+[128, 8] 1024
+update_es.3.lin_sbf1.weight
+[8, 18] 144
+update_es.3.lin_sbf2.weight
+[64, 8] 512
+update_es.3.lin_rbf.weight
+[128, 6] 768
+update_es.3.lin_kj.weight
+[128, 128] 16384
+update_es.3.lin_kj.bias
+[128] 128
+update_es.3.lin_ji.weight
+[128, 128] 16384
+update_es.3.lin_ji.bias
+[128] 128
+update_es.3.lin_down.weight
 [64, 128] 8192
-update_es.2.mlp.0.weight
-[64, 31] 1984
-update_es.2.mlp.0.bias
-[64] 64
-update_es.2.mlp.2.weight
-[64, 64] 4096
-update_es.2.mlp.2.bias
-[64] 64
+update_es.3.lin_up.weight
+[128, 64] 8192
+update_es.3.layers_before_skip.0.lin1.weight
+[128, 128] 16384
+update_es.3.layers_before_skip.0.lin1.bias
+[128] 128
+update_es.3.layers_before_skip.0.lin2.weight
+[128, 128] 16384
+update_es.3.layers_before_skip.0.lin2.bias
+[128] 128
 update_es.3.lin.weight
-[64, 128] 8192
-update_es.3.mlp.0.weight
-[64, 31] 1984
-update_es.3.mlp.0.bias
-[64] 64
-update_es.3.mlp.2.weight
-[64, 64] 4096
-update_es.3.mlp.2.bias
-[64] 64
-update_u.lin1.weight
-[64, 128] 8192
-update_u.lin1.bias
-[64] 64
-update_u.lin2.weight
-[1, 64] 64
-update_u.lin2.bias
-[1] 1
-178049
+[128, 128] 16384
+update_es.3.lin.bias
+[128] 128
+update_es.3.layers_after_skip.0.lin1.weight
+[128, 128] 16384
+update_es.3.layers_after_skip.0.lin1.bias
+[128] 128
+update_es.3.layers_after_skip.0.lin2.weight
+[128, 128] 16384
+update_es.3.layers_after_skip.0.lin2.bias
+[128] 128
+update_es.3.layers_after_skip.1.lin1.weight
+[128, 128] 16384
+update_es.3.layers_after_skip.1.lin1.bias
+[128] 128
+update_es.3.layers_after_skip.1.lin2.weight
+[128, 128] 16384
+update_es.3.layers_after_skip.1.lin2.bias
+[128] 128
+1886342
