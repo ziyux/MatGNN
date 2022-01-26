@@ -43,26 +43,28 @@ class Dataloader(object):
     def get_split_loaders(self, train_rate=0.8, valid_rate=0.1, test_rate=0.1, batch_size=1, random_state=25,
                           shuffle=False, drop_last=False, dataset=None):
         dataset = self.dataset if dataset is None else dataset
-        train_set, valid_set, test_set = self.split_dataset(train_rate=train_rate, valid_rate=valid_rate, test_rate=test_rate,
+        train_set, valid_set, test_set = self.split_dataset(train_rate=train_rate, valid_rate=valid_rate,
+                                                            test_rate=test_rate,
                                                             random_state=random_state, dataset=dataset)
         train_loader, valid_loader, test_loader = map(
             lambda splitdataset: self.get_loader(batch_size, drop_last, shuffle, splitdataset),
             [train_set, valid_set, test_set])
         return train_loader, valid_loader, test_loader
 
-    def split_dataset(self, train_rate=0.8, valid_rate=0.1, test_rate=0.1, shuffle=False, random_state=25, dataset=None):
+    def split_dataset(self, train_rate=0.8, valid_rate=0.1, test_rate=0.1, shuffle=False, random_state=25,
+                      dataset=None):
         dataset = self.dataset if dataset is None else dataset
         train_set, valid_set, test_set = split_dataset(dataset, [train_rate, valid_rate, test_rate], shuffle=shuffle,
-                                                     random_state=random_state)
+                                                       random_state=random_state)
         return train_set, valid_set, test_set
 
     def get_loader(self, batch_size=1, drop_last=False, shuffle=False, dataset=None):
         dataset = self.dataset if dataset is None else dataset
         return GraphDataLoader(dataset, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)
-    
+
     def __getitem__(self, idx):
         return self.dataset[idx]
-    
+
     def __len__(self):
         return len(self.dataset)
 
@@ -105,7 +107,6 @@ class Dataloader(object):
     #     test_set = DatasetPartition('test_set', self.dataset, test_mask)
     #     self.test_loader = GraphDataLoader(test_set, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)
     #     return self.train_loader, self.val_loader, self.test_loader, train_set, val_set, test_set
-
 
 # from dgl.data import DGLDataset
 
