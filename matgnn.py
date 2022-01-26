@@ -108,7 +108,7 @@ class MatGNN(object):
             with torch.no_grad():
                 logits = self.model(batched_graph)
                 loss = criterion(logits, label)
-                valid_loss = valid_loss + ((1 / (step + 1)) * (loss.data - valid_loss))
+                valid_loss = valid_loss + (loss.data - valid_loss) / (step + 1)
         return float(valid_loss)
 
     def predict(self, model_name=None, loader=None):
