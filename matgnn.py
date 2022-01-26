@@ -107,7 +107,7 @@ class MatGNN(object):
         for step, (batched_graph, label) in enumerate(tqdm(loader, desc='Evaluating')):
             with torch.no_grad():
                 logits = self.model(batched_graph)
-                loss = criterion(logits, label)
+                loss = criterion(logits.flatten(), label)
                 valid_loss.append(loss)
         return sum(valid_loss)/(step + 1)
 
