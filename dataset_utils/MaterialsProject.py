@@ -59,7 +59,6 @@ class MaterialsProject(MatDataset):
                 res = []
                 ran = tqdm(range(len(self.criteria)), desc='Query information') if self.verbose else range(len(self.criteria))
                 for i in ran:
-                    print(i)
                     info = pd.DataFrame(mpr.query(criteria=self.criteria[i], properties=self.properties)
                                         , columns=self.properties)
                     res.append(info)
