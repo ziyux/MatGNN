@@ -99,7 +99,7 @@ class MatGNN(object):
                         '    Best_Loss: ' + str(float(self.valid_loss)) + '\n',
                         filename=os.path.join(self.result_dir, 'log.txt'))
 
-    def score(self, criterion=l1_loss, loader=None):
+    def score(self, criterion=mse_loss, loader=None):
         self.model.eval()
         loader = self.check_input(loader, 'test_loader')
         criterion = self.check_input(criterion, 'criterion')
