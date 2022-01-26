@@ -1,0 +1,4 @@
+name: matgnn
+channels:
+  - defaults
+prefix: /scratch/user/zxiang/.conda/envs/matgnn

@@ -1,50 +1,32 @@
+from dataset import Dataloader
 from matgnn import MatGNN
-from nn import NNBase
-from nn_util.MEGNet import MEGNet
-import torch.nn as F
-from graph import xyz_to_dat
-import numpy as np
-import torch
+from nn_utils.spherenet import SphereNet
 
 dataset_name = 'QM9'
-node_fea_sel = ['atomic_number', 'R']
-edge_fea_sel = ['GD']
-label_name = ['U0_atom']
+node_fea_sel = ['atomic_number']
+edge_fea_sel = []
+label_name = 'U0_atom'
 cutoff = 5
 k = 12
 connect_method = 'CWC'
-train_rate = 0.90
-val_rate = 0.05
-test_rate = 0.05
-act = 'relu'
+batch_size = 512
+train_rate = 0.841
+valid_rate = 0.0764
+test_rate = 0.0826
 resume = False
 
-mpnn = lambda feat, efeat: MEGNet(feat, efeat,
-                                  megnet_num=3,
-                                  dim1=64, dim2=32,
-                                  act=act,
-                                  aggregator_type='mean',
-                                  dense_layer_num=2,
-                                  mlp_layer=3)
+data = Dataloader(
+    dataset_name, label_name, connect_method=connect_method, cutoff=cutoff, verbose=True, force_reload=False,
+    save_graphs=True, save_name='', node_fea_sel=node_fea_sel, edge_fea_sel=edge_fea_sel)
 
-node_embedding = F.Embedding(10, 16)
-model = lambda feat, efeat: NNBase(out_feats=1,
-                                   mpnn=mpnn(feat, efeat),
-                                   mpnn_feats=32,
-                                   act=act,
-                                   node_embedding=node_embedding)
+train_loader, valid_loader, test_loader = data.get_split_loaders(train_rate, valid_rate, test_rate, batch_size)
 
-nn = MatGNN(dataset_name=dataset_name,
-            model=model,
-            label_sel=label_name,
-            node_fea_sel=node_fea_sel,
-            edge_fea_sel=edge_fea_sel,
-            connect_method=connect_method,
-            cutoff=cutoff,
-            k=k,
-            train_rate=train_rate,
-            val_rate=val_rate,
-            test_rate=test_rate,
-            resume=resume)
+model = SphereNet(energy_and_force=False, cutoff=5.0, num_layers=4,
+                  hidden_channels=128, out_channels=1, int_emb_size=64,
+                  basis_emb_size_dist=8, basis_emb_size_angle=8, basis_emb_size_torsion=8, out_emb_channels=256,
+                  num_spherical=3, num_radial=6, envelope_exponent=5,
+                  num_before_skip=1, num_after_skip=2, num_output_layers=3, use_node_features=True)
+
+nn = MatGNN(dataset_name, model, train_loader, valid_loader, test_loader, resume=resume)
 
 nn.train()
