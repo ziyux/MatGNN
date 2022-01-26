@@ -31,7 +31,8 @@ class MaterialsProject(MatDataset):
                                    cutoff=cutoff,
                                    **kwargs)
         self.save_graphs = save_graphs
-        self.api_key = api_key if api_key is not None else '3X2CKEKcGGAJyml3Suu8'
+        api_key = api_key if api_key is not None else '3X2CKEKcGGAJyml3Suu8'
+        self.mpr = MPRester(api_key=api_key)
         self.criteria = criteria if criteria is not None \
             else {"elements": {"$in": ["Li", "Na", "K"], "$all": ["O"]}, "nelements": 2}
         self.properties = ['task_id',
@@ -54,36 +55,37 @@ class MaterialsProject(MatDataset):
     def download(self):
         # Query the Materials Project Database
         # criteria = {'nsites':{'$gte':2,'$lt':20}}
-        with MPRester(api_key=self.api_key) as mpr:
-            if type(self.criteria) is list:
-                res = []
-                ran = tqdm(range(len(self.criteria)), desc='Query information') if self.verbose else range(len(self.criteria))
-                for i in ran:
-                    info = pd.DataFrame(mpr.query(criteria=self.criteria[i], properties=self.properties)
-                                        , columns=self.properties)
-                    res.append(info)
-                lookup = pd.concat(res)
-            else:
-                res = mpr.query(criteria=self.criteria, properties=self.properties)
-                # convert to dataframe
-                lookup = pd.DataFrame(res, columns=self.properties)
+
+        if type(self.criteria) is list:
+            res = []
+            ran = tqdm(range(len(self.criteria)), desc='Query information') \
+                if self.verbose else range(len(self.criteria))
+            for i in ran:
+                info = pd.DataFrame(self.query(criteria=self.criteria[i], properties=self.properties)
+                                    , columns=self.properties)
+                res.append(info)
+            lookup = pd.concat(res)
+        else:
+            res = self.query(criteria=self.criteria, properties=self.properties)
+            # convert to dataframe
+            lookup = pd.DataFrame(res, columns=self.properties)
         lookup.to_csv(f'{self.save_path}/{self.download_name}')
 
     def process(self):
-        lookup = pd.read_csv(f'{self.save_path}/{self.download_name}')
-        # download structures   
-        cells = []
-        label_dict = {key: [] for key in self.properties}
-        i = 1
-        with MPRester(api_key=self.api_key) as mpr:
+        if self.has_cache() and 'cells' in self.data_saved:
+            cells = self.data_saved['cells']
+        else:
+            lookup = pd.read_csv(f'{self.save_path}/{self.download_name}')
+            # download structures
+            cells = []
+            label_dict = {key: [] for key in self.properties}
             if self.verbose:
                 print('Total structures: ', lookup.shape[0])
                 rows = tqdm(lookup.itertuples(), desc='Get structure')
-            else: 
+            else:
                 rows = lookup.itertuples()
             for row in rows:
-                i = i + 1
-                cell = mpr.get_structure_by_material_id(row.task_id, conventional_unit_cell=True)
+                cell = self.get_structure_by_material_id(row.task_id, conventional_unit_cell=True)
                 cells.append(cell)
                 for label_name in self.properties:
                     if label_name == 'task_id' or label_name == 'pretty_formula':
@@ -91,12 +93,12 @@ class MaterialsProject(MatDataset):
                     else:
                         label = getattr(row, label_name)
                         label_dict[label_name].append(label)
-                    # print(label_name, label_dict[label_name][-1])
-        # save processed data
-        for label_name in self.properties:
-            if label_name != 'task_id' and label_name != 'pretty_formula':
-                label_dict[label_name] = torch.tensor(label_dict[label_name], dtype=torch.float32)
-        self.label_dict = label_dict
+
+            # save processed data
+            for label_name in self.properties:
+                if label_name != 'task_id' and label_name != 'pretty_formula':
+                    label_dict[label_name] = torch.tensor(label_dict[label_name], dtype=torch.float32)
+            self.label_dict = label_dict
         if self.save_graphs:
             self.graphs_saved = []
             cells = tqdm(cells, desc='Construct graph') if self.verbose else cells
@@ -122,7 +124,31 @@ class MaterialsProject(MatDataset):
         return graph
 
     def getitem(self, idx):
-        # get one example by index
+        # get one example by index\
+        if self.save_graphs:
+            raise Exception('Reprocess to save graphs.')
         label = self.label[idx]
         graph = self.gc.connect_graph(self.cells[idx])
         return graph, label
+
+    def query(self, criteria, properties, i=0):
+        with self.mpr as mpr:
+            try:
+                return mpr.query(criteria=criteria, properties=properties)
+            except:
+                if i < 10:
+                    i += 1
+                    return self.query(criteria=criteria, properties=properties, i=i)
+                else:
+                    raise Exception('MPRester query error.')
+
+    def get_structure_by_material_id(self, task_id, conventional_unit_cell=True, i=0):
+        with self.mpr as mpr:
+            try:
+                return mpr.get_structure_by_material_id(task_id, conventional_unit_cell=conventional_unit_cell)
+            except:
+                if i < 10:
+                    i += 1
+                    return self.get_structure_by_material_id(task_id, conventional_unit_cell, i=i)
+                else:
+                    raise Exception('MPRester get structure error.')

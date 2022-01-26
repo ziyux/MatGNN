@@ -70,7 +70,7 @@ class MatDataset(DGLDataset):
         if self.download_name is None:
             raise ValueError('Downloaded file name needs to be specified.')
         else:
-            if os.path.exists(os.path.join(self.raw_path, self.download_name)):  # pragma: no cover
+            if os.path.exists(os.path.join(self.raw_path, self.download_name)):
                 return
 
         makedirs(self.save_path)
