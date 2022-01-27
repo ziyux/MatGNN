@@ -119,8 +119,8 @@ class MatDataset(DGLDataset):
 
     def save(self):
         # save processed data to directory `self.save_path`
-        data_file = os.path.join(self.save_path, self._name + 'data.pkl')
-        graphs_file = os.path.join(self.save_path, self._name + 'graphs.bin')
+        data_file = os.path.join(self.save_path, self._name + '_data.pkl')
+        graphs_file = os.path.join(self.save_path, self._name + '_graphs.bin')
         if self.label_dict is {}:
             raise Exception('self.lable_dict is empty.')
         self.data_saved['label_dict'] = self.label_dict
@@ -131,8 +131,8 @@ class MatDataset(DGLDataset):
 
     def load(self):
         # load processed data from directory `self.raw_dir`
-        data_file = os.path.join(self.raw_path, self._name + 'data.pkl')
-        graphs_file = os.path.join(self.raw_path, self._name + 'graphs.bin')
+        data_file = os.path.join(self.raw_path, self._name + '_data.pkl')
+        graphs_file = os.path.join(self.raw_path, self._name + '_graphs.bin')
         if os.path.exists(data_file):
             self.data_saved = load_info(data_file)
             self.label_dict = self.data_saved['label_dict']
@@ -142,5 +142,5 @@ class MatDataset(DGLDataset):
             raise Exception('Failed to load cache to the dataset')
 
     def has_cache(self):
-        data_file = os.path.join(self.raw_path, self._name + 'data.pkl')
+        data_file = os.path.join(self.raw_path, self._name + '_data.pkl')
         return os.path.exists(data_file)

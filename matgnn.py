@@ -121,15 +121,6 @@ class MatGNN(object):
                 predicts.append(self.model(batched_graph))
         return predicts
 
-    def check_input(self, inp, input_name):
-        if inp is None:
-            if getattr(self, input_name) is None:
-                raise Exception('No ' + input_name + 'has been input.')
-            else:
-                return getattr(self, input_name)
-        else:
-            return inp
-
     def save_model(self, model_name, epoch, loss, loss_list):
         torch.save({
             'epoch': epoch,
@@ -158,6 +149,15 @@ class MatGNN(object):
             print('min valid_loss: ', checkpoint['loss'])
             print('loss_list: ', checkpoint['loss_list'])
         return checkpoint
+
+    def check_input(self, inp, input_name):
+        if inp is None:
+            if getattr(self, input_name) is None:
+                raise Exception('No ' + input_name + ' has been input.')
+            else:
+                return getattr(self, input_name)
+        else:
+            return inp
 
     def rename_dir(self, directory, new_directory, i=1):
         try:

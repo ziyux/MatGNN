@@ -2,6 +2,8 @@ import torch
 from pymatgen.ext.matproj import MPRester
 import pandas as pd
 from tqdm import tqdm
+import os
+from dgl.data.utils import save_info, load_info
 
 from dataset_utils.matdataset import MatDataset
 from graph import GraphConstructor
@@ -31,7 +33,6 @@ class MaterialsProject(MatDataset):
                                    cutoff=cutoff,
                                    **kwargs)
         self.save_graphs = save_graphs
-        api_key = api_key if api_key is not None else '3X2CKEKcGGAJyml3Suu8'
         self.mpr = MPRester(api_key=api_key)
         self.criteria = criteria if criteria is not None \
             else {"elements": {"$in": ["Li", "Na", "K"], "$all": ["O"]}, "nelements": 2}
@@ -57,19 +58,37 @@ class MaterialsProject(MatDataset):
         # criteria = {'nsites':{'$gte':2,'$lt':20}}
 
         if type(self.criteria) is list:
+            start = self.read_temp(f'{self.raw_path}/temp', '.csv')
+            step = 1000
+            j = 0
             res = []
-            ran = tqdm(range(len(self.criteria)), desc='Query information') \
+            ran = tqdm(range(start, len(self.criteria)), desc='Query information') \
                 if self.verbose else range(len(self.criteria))
             for i in ran:
                 info = pd.DataFrame(self.query(criteria=self.criteria[i], properties=self.properties)
                                     , columns=self.properties)
                 res.append(info)
-            lookup = pd.concat(res)
+                if i % step == 0 and i > 0:
+                    j = int(i / step)
+                    lookup = pd.concat(res)
+                    lookup.to_csv(f'{self.raw_path}/temp/{self.download_name[:-4]}' + '.' + str(j) + '.csv')
+                    res = []
+            if res:
+                lookup = pd.concat(res)
+                lookup.to_csv(f'{self.raw_path}/temp/{self.download_name[:-4]}' + '.' + str(j + 1) + '.csv')
+            lookup = []
+            idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/temp')]
+            file_lists = [file for _, file in sorted(zip(idx, os.listdir(f'{self.raw_path}/temp')))]
+            for file in file_lists:
+                if file.endswith('.csv'):
+                    lookup.append(pd.read_csv(f'{self.raw_path}/temp/{file}'))
+            lookup = pd.concat(lookup)
         else:
             res = self.query(criteria=self.criteria, properties=self.properties)
             # convert to dataframe
             lookup = pd.DataFrame(res, columns=self.properties)
         lookup.to_csv(f'{self.save_path}/{self.download_name}')
+        self.clean_temp(f'{self.raw_path}/temp')
 
     def process(self):
         if self.has_cache() and 'cells' in self.data_saved:
@@ -77,6 +96,10 @@ class MaterialsProject(MatDataset):
         else:
             lookup = pd.read_csv(f'{self.save_path}/{self.download_name}')
             # download structures
+
+            start = self.read_temp(f'{self.raw_path}/temp', '.pkl')
+            step = 1000
+            j = 0
             cells = []
             label_dict = {key: [] for key in self.properties}
             if self.verbose:
@@ -84,7 +107,10 @@ class MaterialsProject(MatDataset):
                 rows = tqdm(lookup.itertuples(), desc='Get structure')
             else:
                 rows = lookup.itertuples()
-            for row in rows:
+
+            for i, row in enumerate(rows):
+                if i < start:
+                    continue
                 cell = self.get_structure_by_material_id(row.task_id, conventional_unit_cell=True)
                 cells.append(cell)
                 for label_name in self.properties:
@@ -93,6 +119,26 @@ class MaterialsProject(MatDataset):
                     else:
                         label = getattr(row, label_name)
                         label_dict[label_name].append(label)
+
+                if i % step == 0 and i > 0:
+                    j = int(i / step)
+                    temp_data = {'cells': cells, 'label_dict': label_dict}
+                    save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(j) + '.pkl', temp_data)
+                    cells = []
+                    label_dict = {key: [] for key in self.properties}
+            if cells:
+                temp_data = {'cells': cells, 'label_dict': label_dict}
+                save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(j + 1) + '.pkl', temp_data)
+            cells = []
+            label_dict = {key: [] for key in self.properties}
+            idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/temp')]
+            file_lists = [file for _, file in sorted(zip(idx, os.listdir(f'{self.raw_path}/temp')))]
+            for file in file_lists:
+                if file.endswith('.pkl'):
+                    cells += load_info(f'{self.raw_path}/temp/{file}')['cells']
+                    for label_name in self.properties:
+                        new_label = load_info(f'{self.raw_path}/temp/{file}')['label_dict'][label_name]
+                        label_dict[label_name] += new_label
 
             # save processed data
             for label_name in self.properties:
@@ -106,6 +152,7 @@ class MaterialsProject(MatDataset):
                 self.graphs_saved.append(self.construct_graph(cell))
         else:
             self.data_saved = {'cells': cells}
+        # self.clean_temp(f'{self.raw_path}/temp')
 
     def construct_graph(self, cell):
         if self.gc.connect_method == 'PBC':
@@ -152,3 +199,23 @@ class MaterialsProject(MatDataset):
                     return self.get_structure_by_material_id(task_id, conventional_unit_cell, i=i)
                 else:
                     raise Exception('MPRester get structure error.')
+
+    def clean_temp(self, path):
+        if os.path.exists(path):
+            for file in os.listdir(path):
+                os.remove(f'{path}/{file}')
+            os.rmdir(path)
+
+    def read_temp(self, path, ext):
+        if not os.path.exists(path):
+            os.mkdir(path)
+        s = []
+        step = 10
+        for file in os.listdir(path):
+            if file.endswith(ext):
+                s.append(int(file.split('.')[-2]))
+        if s:
+            s = len(s) * step + 1 if len(s) == max(s) else 0
+        else:
+            s = 0
+        return s
