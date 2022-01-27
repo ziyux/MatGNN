@@ -182,6 +182,8 @@ class MaterialsProject(MatDataset):
         with self.mpr as mpr:
             try:
                 return mpr.query(criteria=criteria, properties=properties)
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
             except:
                 if i < 10:
                     i += 1
@@ -193,6 +195,8 @@ class MaterialsProject(MatDataset):
         with self.mpr as mpr:
             try:
                 return mpr.get_structure_by_material_id(task_id, conventional_unit_cell=conventional_unit_cell)
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
             except:
                 if i < 10:
                     i += 1
