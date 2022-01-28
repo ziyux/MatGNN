@@ -1,8 +1,10 @@
+import os
 import torch
-from pymatgen.ext.matproj import MPRester
 import pandas as pd
 from tqdm import tqdm
-import os
+from multiprocessing import Pool
+
+from pymatgen.ext.matproj import MPRester
 from dgl.data.utils import save_info, load_info
 
 from dataset_utils.matdataset import MatDataset
@@ -26,6 +28,7 @@ class MaterialsProject(MatDataset):
                  download_name='lookup_table.csv',
                  api_key=None,
                  criteria=None,
+                 step=1000,
                  node_fea_sel=None,
                  edge_fea_sel=None,
                  **kwargs):
@@ -34,6 +37,7 @@ class MaterialsProject(MatDataset):
                                    **kwargs)
         self.save_graphs = save_graphs
         self.mpr = MPRester(api_key=api_key)
+        self.step = step
         self.criteria = criteria if criteria is not None \
             else {"elements": {"$in": ["Li", "Na", "K"], "$all": ["O"]}, "nelements": 2}
         self.properties = ['task_id',
@@ -59,23 +63,22 @@ class MaterialsProject(MatDataset):
 
         if type(self.criteria) is list:
             start = self.read_temp(f'{self.raw_path}/temp', '.csv')
-            step = 1000
-            j = 0
-            res = []
-            ran = tqdm(range(start, len(self.criteria)), desc='Query information') \
-                if self.verbose else range(len(self.criteria))
-            for i in ran:
-                info = pd.DataFrame(self.query(criteria=self.criteria[i], properties=self.properties)
-                                    , columns=self.properties)
-                res.append(info)
-                if i % step == 0 and i > 0:
-                    j = int(i / step)
-                    lookup = pd.concat(res)
-                    lookup.to_csv(f'{self.raw_path}/temp/{self.download_name[:-4]}' + '.' + str(j) + '.csv')
-                    res = []
-            if res:
-                lookup = pd.concat(res)
-                lookup.to_csv(f'{self.raw_path}/temp/{self.download_name[:-4]}' + '.' + str(j + 1) + '.csv')
+            runs = []
+            runs_num = int((len(self.criteria) - start) / self.step) + \
+                       int((len(self.criteria) - start) % self.step != 0)
+            for i in range(runs_num):
+                if i < runs_num - 1:
+                    runs.append(range(start + i * self.step, start + (i + 1) * self.step))
+                else:
+                    runs.append(range(start + i * self.step, len(self.criteria)))
+
+            # multiprocessing query
+            pool = Pool()
+            for i in range(runs_num):
+                pool.apply_async(self.sub_download, args=(runs[i], i))
+            pool.close()
+            pool.join()
+
             lookup = []
             idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/temp')]
             file_lists = [file for _, file in sorted(zip(idx, os.listdir(f'{self.raw_path}/temp')))]
@@ -84,51 +87,42 @@ class MaterialsProject(MatDataset):
                     lookup.append(pd.read_csv(f'{self.raw_path}/temp/{file}'))
             lookup = pd.concat(lookup)
         else:
-            res = self.query(criteria=self.criteria, properties=self.properties)
-            # convert to dataframe
-            lookup = pd.DataFrame(res, columns=self.properties)
+            info = self.query(criteria=self.criteria, properties=self.properties)
+            lookup = pd.DataFrame(info, columns=self.properties)
         lookup.to_csv(f'{self.save_path}/{self.download_name}')
         self.clean_temp(f'{self.raw_path}/temp')
+
+    def sub_download(self, run, i):
+        info = []
+        run = tqdm(run, desc='Query Information ' + str(i)) if self.verbose else run
+        for j in run:
+            info.append(pd.DataFrame(self.query(criteria=self.criteria[j], properties=self.properties)
+                                     , columns=self.properties))
+        lookup = pd.concat(info)
+        lookup.to_csv(f'{self.raw_path}/temp/{self.download_name[:-4]}' + '.' + str(i) + '.csv')
 
     def process(self):
         if self.has_cache() and 'cells' in self.data_saved:
             cells = self.data_saved['cells']
         else:
             lookup = pd.read_csv(f'{self.save_path}/{self.download_name}')
-            # download structures
 
             start = self.read_temp(f'{self.raw_path}/temp', '.pkl')
-            step = 1000
-            j = 0
-            cells = []
-            label_dict = {key: [] for key in self.properties}
-            if self.verbose:
-                print('Total structures: ', lookup.shape[0])
-                rows = tqdm(lookup.itertuples(), desc='Get structure')
-            else:
-                rows = lookup.itertuples()
+            runs = []
+            runs_num = int((lookup.shape[0] - start) / self.step) + int((lookup.shape[0] - start) % self.step != 0)
+            for i in range(runs_num):
+                if i < runs_num - 1:
+                    runs.append((start + i * self.step, start + (i + 1) * self.step))
+                else:
+                    runs.append((start + i * self.step, lookup.shape[0]))
 
-            for i, row in enumerate(rows):
-                if i < start:
-                    continue
-                cell = self.get_structure_by_material_id(row.task_id, conventional_unit_cell=True)
-                cells.append(cell)
-                for label_name in self.properties:
-                    if label_name == 'task_id' or label_name == 'pretty_formula':
-                        label_dict[label_name].append(getattr(row, label_name))
-                    else:
-                        label = getattr(row, label_name)
-                        label_dict[label_name].append(label)
+            # multiprocessing download structures
+            pool = Pool()
+            for i in range(runs_num):
+                pool.apply_async(self.sub_process, args=(lookup, runs[i], i))
+            pool.close()
+            pool.join()
 
-                if i % step == 0 and i > 0:
-                    j = int(i / step)
-                    temp_data = {'cells': cells, 'label_dict': label_dict}
-                    save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(j) + '.pkl', temp_data)
-                    cells = []
-                    label_dict = {key: [] for key in self.properties}
-            if cells:
-                temp_data = {'cells': cells, 'label_dict': label_dict}
-                save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(j + 1) + '.pkl', temp_data)
             cells = []
             label_dict = {key: [] for key in self.properties}
             idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/temp')]
@@ -147,12 +141,36 @@ class MaterialsProject(MatDataset):
             self.label_dict = label_dict
         if self.save_graphs:
             self.graphs_saved = []
-            cells = tqdm(cells, desc='Construct graph') if self.verbose else cells
+            cells = tqdm(cells, desc='Construct graph', total=len(cells)) if self.verbose else cells
             for cell in cells:
                 self.graphs_saved.append(self.construct_graph(cell))
         else:
             self.data_saved = {'cells': cells}
         # self.clean_temp(f'{self.raw_path}/temp')
+
+    def sub_process(self, lookup, run, i):
+        start, end = run
+        cells = []
+        label_dict = {key: [] for key in self.properties}
+        rows = lookup.itertuples()
+        pbar = tqdm(desc='Get structure ' + str(i), total=end - start) if self.verbose else None
+        for j, row in enumerate(rows):
+            if j < start:
+                continue
+            elif j >= end:
+                break
+            cell = self.get_structure_by_material_id(row.task_id, conventional_unit_cell=True)
+            cells.append(cell)
+            for label_name in self.properties:
+                if label_name == 'task_id' or label_name == 'pretty_formula':
+                    label_dict[label_name].append(getattr(row, label_name))
+                else:
+                    label = getattr(row, label_name)
+                    label_dict[label_name].append(label)
+            if self.verbose:
+                pbar.update(1)
+        temp_data = {'cells': cells, 'label_dict': label_dict}
+        save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(i) + '.pkl', temp_data)
 
     def construct_graph(self, cell):
         if self.gc.connect_method == 'PBC':
