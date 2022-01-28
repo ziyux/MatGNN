@@ -63,15 +63,16 @@ class MaterialsProject(MatDataset):
         # criteria = {'nsites':{'$gte':2,'$lt':20}}
 
         if type(self.criteria) is list:
-            start = self.read_temp(f'{self.raw_path}/temp', '.csv')
+            step = self.step
+            start = self.read_temp(f'{self.raw_path}/temp', '.csv', step)
             runs = []
-            runs_num = int((len(self.criteria) - start) / self.step) + \
-                       int((len(self.criteria) - start) % self.step != 0) if (len(self.criteria) - start) >= 0 else 0
+            runs_num = int((len(self.criteria) - start) / step) + \
+                       int((len(self.criteria) - start) % step != 0) if (len(self.criteria) - start) >= 0 else 0
             for i in range(runs_num):
                 if i < runs_num - 1:
-                    runs.append(range(start + i * self.step, start + (i + 1) * self.step))
+                    runs.append(range(start + i * step, start + (i + 1) * step))
                 else:
-                    runs.append(range(start + i * self.step, len(self.criteria)))
+                    runs.append(range(start + i * step, len(self.criteria)))
 
             # multiprocessing query
             pool = Pool()
@@ -107,16 +108,16 @@ class MaterialsProject(MatDataset):
             cells = self.data_saved['cells']
         else:
             lookup = pd.read_csv(f'{self.save_path}/{self.download_name}')
-
-            start = self.read_temp(f'{self.raw_path}/temp', '.pkl')
+            step = self.step
+            start = self.read_temp(f'{self.raw_path}/temp', '.pkl', step)
             runs = []
-            runs_num = int((lookup.shape[0] - start) / self.step) + int((lookup.shape[0] - start) % self.step != 0) \
+            runs_num = int((lookup.shape[0] - start) / step) + int((lookup.shape[0] - start) % step != 0) \
                 if (lookup.shape[0] - start) >= 0 else 0
             for i in range(runs_num):
                 if i < runs_num - 1:
-                    runs.append((start + i * self.step, start + (i + 1) * self.step))
+                    runs.append((start + i * step, start + (i + 1) * step))
                 else:
-                    runs.append((start + i * self.step, lookup.shape[0]))
+                    runs.append((start + i * step, lookup.shape[0]))
 
             # multiprocessing download structures
             pool = Pool()
@@ -146,17 +147,17 @@ class MaterialsProject(MatDataset):
             # cells = tqdm(cells, desc='Construct graph', total=len(cells)) if self.verbose else cells
             # for cell in cells:
             #     self.graphs_saved.append(self.construct_graph(cell))
-
-            start = self.read_temp(f'{self.raw_path}/graphs', '.bin')
+            step = 1
+            start = self.read_temp(f'{self.raw_path}/graphs', '.bin', step)
             runs = []
-            runs_num = int((len(cells) - start) / self.step) + int((len(cells) - start) % self.step != 0) \
+            runs_num = int((len(cells) - start) / step) + int((len(cells) - start) % step != 0) \
                 if len(cells) - start >= 0 else 0
             for i in range(runs_num):
                 if i < runs_num - 1:
-                    runs.append((start + i * self.step, start + (i + 1) * self.step))
+                    runs.append((start + i * step, start + (i + 1) * step))
                 else:
-                    runs.append((start + i * self.step, len(cells)))
-            for i in range(runs_num):
+                    runs.append((start + i * step, len(cells)))
+            for i in tqdm(range(runs_num), desc='Construct graphs'):
                 self.sub_construct_graph(cells, runs[i], i)
 
             idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/graphs')]
@@ -206,8 +207,8 @@ class MaterialsProject(MatDataset):
 
     def sub_construct_graph(self, cells, run, i):
         cells_sub = cells[run[0]:run[1]]
-        cells_sub = tqdm(cells_sub, desc='Construct graph ' + str(i), total=len(cells_sub))\
-            if self.verbose else cells_sub
+        # cells_sub = tqdm(cells_sub, desc='Construct graph ' + str(i), total=len(cells_sub))\
+        #     if self.verbose else cells_sub
         graphs_saved = []
         for cell in cells_sub:
             graphs_saved.append(self.construct_graph(cell))
@@ -269,7 +270,8 @@ class MaterialsProject(MatDataset):
                 os.remove(f'{path}/{file}')
             os.rmdir(path)
 
-    def read_temp(self, path, ext):
+    def read_temp(self, path, ext, step=None):
+        step = self.step if step is None else step
         if not os.path.exists(path):
             os.mkdir(path)
         s = []
@@ -277,7 +279,7 @@ class MaterialsProject(MatDataset):
             if file.endswith(ext):
                 s.append(int(file.split('.')[-2]))
         if s:
-            s = len(s) * self.step if (len(s) - 1) == max(s) else 0
+            s = len(s) * step if (len(s) - 1) == max(s) else 0
         else:
             s = 0
         return s
