@@ -29,7 +29,7 @@ class MaterialsProject(MatDataset):
                  api_key=None,
                  criteria=None,
                  properties=None,
-                 step=1000,
+                 step=50,
                  node_fea_sel=None,
                  edge_fea_sel=None,
                  **kwargs):
@@ -41,7 +41,7 @@ class MaterialsProject(MatDataset):
         self.step = step
         self.criteria = criteria if criteria is not None \
             else {"elements": {"$in": ["Li", "Na", "K"], "$all": ["O"]}, "nelements": 2}
-        self.properties = properties if properties is None \
+        self.properties = properties if properties is not None \
             else ['task_id', 'pretty_formula', 'nsites', 'nelements',
                   'band_gap', 'formation_energy_per_atom', 'energy_per_atom', 'e_above_hull']
         self.lookup = None
@@ -66,7 +66,7 @@ class MaterialsProject(MatDataset):
             start = self.read_temp(f'{self.raw_path}/temp', '.csv')
             runs = []
             runs_num = int((len(self.criteria) - start) / self.step) + \
-                       int((len(self.criteria) - start) % self.step != 0)
+                       int((len(self.criteria) - start) % self.step != 0) if (len(self.criteria) - start) >= 0 else 0
             for i in range(runs_num):
                 if i < runs_num - 1:
                     runs.append(range(start + i * self.step, start + (i + 1) * self.step))
@@ -110,7 +110,8 @@ class MaterialsProject(MatDataset):
 
             start = self.read_temp(f'{self.raw_path}/temp', '.pkl')
             runs = []
-            runs_num = int((lookup.shape[0] - start) / self.step) + int((lookup.shape[0] - start) % self.step != 0)
+            runs_num = int((lookup.shape[0] - start) / self.step) + int((lookup.shape[0] - start) % self.step != 0) \
+                if (lookup.shape[0] - start) >= 0 else 0
             for i in range(runs_num):
                 if i < runs_num - 1:
                     runs.append((start + i * self.step, start + (i + 1) * self.step))
@@ -141,13 +142,30 @@ class MaterialsProject(MatDataset):
                     label_dict[label_name] = torch.tensor(label_dict[label_name], dtype=torch.float32)
             self.label_dict = label_dict
         if self.save_graphs:
-            self.graphs_saved = []
             cells = tqdm(cells, desc='Construct graph', total=len(cells)) if self.verbose else cells
             for cell in cells:
                 self.graphs_saved.append(self.construct_graph(cell))
+            # runs = []
+            # runs_num = int(len(cells) / self.step) + int(len(cells) % self.step != 0)
+            # for i in range(runs_num):
+            #     if i < runs_num - 1:
+            #         runs.append((i * self.step, (i + 1) * self.step))
+            #     else:
+            #         runs.append((i * self.step, len(cells)))
+            # self.graphs_saved = [[] for _ in range(runs_num)]
+            # pool = Pool()
+            # for i in range(runs_num):
+            #     pool.apply_async(self.sub_construct_graph, args=(cells, runs[i], i))
+            # pool.close()
+            # pool.join()
+            # graphs_saved = self.graphs_saved[0]
+            # for i in range(1, runs_num):
+            #     graphs_saved += self.graphs_saved[i]
+            # self.graphs_saved = graphs_saved
+            # print(graphs_saved)
         else:
             self.data_saved = {'cells': cells}
-        self.clean_temp(f'{self.raw_path}/temp')
+        # self.clean_temp(f'{self.raw_path}/temp')
 
     def sub_process(self, lookup, run, i):
         start, end = run
@@ -155,7 +173,6 @@ class MaterialsProject(MatDataset):
         label_dict = {key: [] for key in self.properties}
         rows = lookup.itertuples()
         pbar = tqdm(desc='Get structure ' + str(i), total=end - start) if self.verbose else None
-        print('\n')
         for j, row in enumerate(rows):
             if j < start:
                 continue
@@ -173,6 +190,14 @@ class MaterialsProject(MatDataset):
                 pbar.update(1)
         temp_data = {'cells': cells, 'label_dict': label_dict}
         save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(i) + '.pkl', temp_data)
+
+    # def sub_construct_graph(self, cells, run, i):
+    #     cells_sub = cells[run[0]:run[1]]
+    #     cells_sub = tqdm(cells_sub, desc='Construct graph ' + str(i), total=len(cells)) if self.verbose else cells_sub
+    #     for cell in cells_sub:
+    #         print(self.construct_graph(cell))
+    #         self.graphs_saved[i].append(self.construct_graph(cell))
+    #         print(self.graphs_saved[i])
 
     def construct_graph(self, cell):
         if self.gc.connect_method == 'PBC':
@@ -234,12 +259,11 @@ class MaterialsProject(MatDataset):
         if not os.path.exists(path):
             os.mkdir(path)
         s = []
-        step = 10
         for file in os.listdir(path):
             if file.endswith(ext):
                 s.append(int(file.split('.')[-2]))
         if s:
-            s = len(s) * step + 1 if len(s) == max(s) else 0
+            s = len(s) * self.step if (len(s) - 1) == max(s) else 0
         else:
             s = 0
         return s
