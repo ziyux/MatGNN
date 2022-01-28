@@ -5,7 +5,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 
 from pymatgen.ext.matproj import MPRester
-from dgl.data.utils import save_info, load_info
+from dgl.data.utils import save_info, load_info, save_graphs, load_graphs
 
 from dataset_utils.matdataset import MatDataset
 from graph import GraphConstructor
@@ -142,16 +142,29 @@ class MaterialsProject(MatDataset):
                     label_dict[label_name] = torch.tensor(label_dict[label_name], dtype=torch.float32)
             self.label_dict = label_dict
         if self.save_graphs:
-            cells = tqdm(cells, desc='Construct graph', total=len(cells)) if self.verbose else cells
-            for cell in cells:
-                self.graphs_saved.append(self.construct_graph(cell))
-            # runs = []
-            # runs_num = int(len(cells) / self.step) + int(len(cells) % self.step != 0)
-            # for i in range(runs_num):
-            #     if i < runs_num - 1:
-            #         runs.append((i * self.step, (i + 1) * self.step))
-            #     else:
-            #         runs.append((i * self.step, len(cells)))
+
+            # cells = tqdm(cells, desc='Construct graph', total=len(cells)) if self.verbose else cells
+            # for cell in cells:
+            #     self.graphs_saved.append(self.construct_graph(cell))
+
+            start = self.read_temp(f'{self.raw_path}/graphs', '.bin')
+            runs = []
+            runs_num = int((len(cells) - start) / self.step) + int((len(cells) - start) % self.step != 0) \
+                if len(cells) - start >= 0 else 0
+            for i in range(runs_num):
+                if i < runs_num - 1:
+                    runs.append((start + i * self.step, start + (i + 1) * self.step))
+                else:
+                    runs.append((start + i * self.step, len(cells)))
+            for i in range(runs_num):
+                self.sub_construct_graph(cells, runs[i], i)
+
+            idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/graphs')]
+            file_lists = [file for _, file in sorted(zip(idx, os.listdir(f'{self.raw_path}/graphs')))]
+            for file in file_lists:
+                if file.endswith('.bin'):
+                    self.graphs_saved += load_graphs(f'{self.raw_path}/graphs/{file}')[0]
+
             # self.graphs_saved = [[] for _ in range(runs_num)]
             # pool = Pool()
             # for i in range(runs_num):
@@ -191,13 +204,14 @@ class MaterialsProject(MatDataset):
         temp_data = {'cells': cells, 'label_dict': label_dict}
         save_info(f'{self.raw_path}/temp/temp_data' + '.' + str(i) + '.pkl', temp_data)
 
-    # def sub_construct_graph(self, cells, run, i):
-    #     cells_sub = cells[run[0]:run[1]]
-    #     cells_sub = tqdm(cells_sub, desc='Construct graph ' + str(i), total=len(cells)) if self.verbose else cells_sub
-    #     for cell in cells_sub:
-    #         print(self.construct_graph(cell))
-    #         self.graphs_saved[i].append(self.construct_graph(cell))
-    #         print(self.graphs_saved[i])
+    def sub_construct_graph(self, cells, run, i):
+        cells_sub = cells[run[0]:run[1]]
+        cells_sub = tqdm(cells_sub, desc='Construct graph ' + str(i), total=len(cells_sub))\
+            if self.verbose else cells_sub
+        graphs_saved = []
+        for cell in cells_sub:
+            graphs_saved.append(self.construct_graph(cell))
+        save_graphs(f'{self.raw_path}/graphs/graphs.' + str(i) + '.bin', graphs_saved)
 
     def construct_graph(self, cell):
         if self.gc.connect_method == 'PBC':

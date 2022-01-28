@@ -97,15 +97,15 @@ class MatDataset(DGLDataset):
         if self.graphs_saved and self.label is not None:
             return self.graphs_saved[idx].to(device), self.label[idx].to(device)
         else:
-            try:
-                graph, label = self.getitem(idx)
-            except ValueError('Fail to get items. Try to process data again.'):
-                try:
-                    self._force_reload = True
-                    self._load()
-                    graph, label = self.__getitem__(idx)
-                except:
-                    raise Exception('Processed items are incomplete. Please check getitem() and process() functions.')
+            # try:
+            graph, label = self.getitem(idx)
+            # except ValueError('Fail to get items. Try to process data again.'):
+            #     try:
+            #         self._force_reload = True
+            #         self._load()
+            #         graph, label = self.__getitem__(idx)
+            #     except:
+            #         raise Exception('Processed items are incomplete. Please check getitem() and process() functions.')
             return graph.to(device), label.to(device)
 
     def getitem(self, idx):
