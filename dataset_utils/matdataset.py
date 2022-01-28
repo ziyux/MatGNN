@@ -99,8 +99,7 @@ class MatDataset(DGLDataset):
         else:
             try:
                 graph, label = self.getitem(idx)
-            except:
-                Exception('Fail to get items. Try to process data again.')
+            except ValueError('Fail to get items. Try to process data again.'):
                 try:
                     self._force_reload = True
                     self._load()
@@ -108,7 +107,6 @@ class MatDataset(DGLDataset):
                 except:
                     raise Exception('Processed items are incomplete. Please check getitem() and process() functions.')
             return graph.to(device), label.to(device)
-
 
     def getitem(self, idx):
         raise NotImplementedError('getitem() function needs to be specified.')
