@@ -329,6 +329,7 @@ class SphereNet(torch.nn.Module):
             sbf = sbf.to_dense()[idx_ji, idx_kj]
             tbf = graph.edata['tbf'].to_dense()[idx_ji, idx_kj]
             emb = (rbf, sbf, tbf)
+            j, i = graph.edges()
         else:
             dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
             emb = self.emb(dist, angle, torsion, idx_kj)

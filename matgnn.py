@@ -2,6 +2,8 @@ import os
 import time
 import torch
 from torch.nn.functional import mse_loss, l1_loss
+from torch.optim.lr_scheduler import StepLR
+from torch.optim import Adam
 from tqdm import tqdm
 
 try:
@@ -21,7 +23,8 @@ class MatGNN(object):
                  train_loader=None,
                  valid_loader=None,
                  test_loader=None,
-                 criterion=mse_loss,
+                 criterion=l1_loss,
+                 lr=0.0005, lr_decay_factor=0.5, lr_decay_step_size=100, weight_decay=0,
                  resume: bool = False,
                  resume_model: str = 'checkpoint.tar'):
         """
@@ -56,7 +59,8 @@ class MatGNN(object):
         self.local_time = lambda: time.asctime(time.localtime(time.time()))
         self.model = model.cuda() if torch.cuda.is_available() else model
         self.train_loader, self.valid_loader, self.test_loader = train_loader, valid_loader, test_loader
-        self.optimizer = torch.optim.Adam(self.model.parameters())
+        self.optimizer = Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
+        self.scheduler = StepLR(self.optimizer, step_size=lr_decay_step_size, gamma=lr_decay_factor)
         self.criterion = criterion
         self.start_epoch = 0
         self.valid_loss = float('inf')
@@ -67,7 +71,7 @@ class MatGNN(object):
         else:
             self.loss_list = {'train':[], 'valid': []}
 
-    def train(self, MAX_ITER=3000, model_name=None, train_loader=None, valid_loader=None):
+    def train(self, MAX_ITER=1000, model_name=None, train_loader=None, valid_loader=None):
         train_loader = self.check_input(train_loader, 'train_loader')
         valid_loader = self.check_input(valid_loader, 'valid_loader')
         self.load_model(model_name)
@@ -98,8 +102,9 @@ class MatGNN(object):
                         '    Valid_Loss: ' + str(float(valid_loss)) +
                         '    Best_Loss: ' + str(float(self.valid_loss)) + '\n',
                         filename=os.path.join(self.result_dir, 'log.txt'))
+            self.scheduler.step()
 
-    def score(self, criterion=mse_loss, loader=None):
+    def score(self, criterion=None, loader=None):
         self.model.eval()
         loader = self.check_input(loader, 'test_loader')
         criterion = self.check_input(criterion, 'criterion')
