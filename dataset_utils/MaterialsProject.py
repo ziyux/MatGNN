@@ -29,7 +29,7 @@ class MaterialsProject(MatDataset):
                  api_key=None,
                  criteria=None,
                  properties=None,
-                 step=50,
+                 step=1000,
                  node_fea_sel=None,
                  edge_fea_sel=None,
                  **kwargs):
