@@ -37,7 +37,7 @@ class MaterialsProject(MatDataset):
                                    cutoff=cutoff,
                                    **kwargs)
         self.save_graphs = save_graphs
-        self.mpr = MPRester(api_key=api_key)
+        self.api_key = api_key
         self.step = step
         self.criteria = criteria if criteria is not None \
             else {"elements": {"$in": ["Li", "Na", "K"], "$all": ["O"]}, "nelements": 2}
@@ -224,7 +224,7 @@ class MaterialsProject(MatDataset):
         return graph, label
 
     def query(self, criteria, properties, i=0):
-        with self.mpr as mpr:
+        with MPRester(api_key=self.api_key) as mpr:
             try:
                 return mpr.query(criteria=criteria, properties=properties)
             except KeyboardInterrupt:
@@ -237,7 +237,7 @@ class MaterialsProject(MatDataset):
                     raise Exception('MPRester query error.')
 
     def get_structure_by_material_id(self, task_id, conventional_unit_cell=True, i=0):
-        with self.mpr as mpr:
+        with MPRester(api_key=self.api_key) as mpr:
             try:
                 return mpr.get_structure_by_material_id(task_id, conventional_unit_cell=conventional_unit_cell)
             except KeyboardInterrupt:
