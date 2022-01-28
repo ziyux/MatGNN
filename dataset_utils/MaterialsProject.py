@@ -220,7 +220,7 @@ class MaterialsProject(MatDataset):
         if self.save_graphs:
             raise Exception('Reprocess to save graphs.')
         label = self.label[idx]
-        graph = self.gc.connect_graph(self.cells[idx])
+        graph = self.construct_graph(self.cells[idx])
         return graph, label
 
     def query(self, criteria, properties, i=0):
