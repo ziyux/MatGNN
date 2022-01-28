@@ -28,6 +28,7 @@ class MaterialsProject(MatDataset):
                  download_name='lookup_table.csv',
                  api_key=None,
                  criteria=None,
+                 properties=None,
                  step=1000,
                  node_fea_sel=None,
                  edge_fea_sel=None,
@@ -40,9 +41,9 @@ class MaterialsProject(MatDataset):
         self.step = step
         self.criteria = criteria if criteria is not None \
             else {"elements": {"$in": ["Li", "Na", "K"], "$all": ["O"]}, "nelements": 2}
-        self.properties = ['task_id',
-                           'pretty_formula', 'nsites', 'nelements',
-                           'band_gap', 'formation_energy_per_atom', 'energy_per_atom', 'e_above_hull']
+        self.properties = properties if properties is None \
+            else ['task_id', 'pretty_formula', 'nsites', 'nelements',
+                  'band_gap', 'formation_energy_per_atom', 'energy_per_atom', 'e_above_hull']
         self.lookup = None
         super(MaterialsProject, self).__init__(dataset_name=dataset_name,
                                                label_name=label_name,
@@ -146,7 +147,7 @@ class MaterialsProject(MatDataset):
                 self.graphs_saved.append(self.construct_graph(cell))
         else:
             self.data_saved = {'cells': cells}
-        # self.clean_temp(f'{self.raw_path}/temp')
+        self.clean_temp(f'{self.raw_path}/temp')
 
     def sub_process(self, lookup, run, i):
         start, end = run
@@ -154,6 +155,7 @@ class MaterialsProject(MatDataset):
         label_dict = {key: [] for key in self.properties}
         rows = lookup.itertuples()
         pbar = tqdm(desc='Get structure ' + str(i), total=end - start) if self.verbose else None
+        print('\n')
         for j, row in enumerate(rows):
             if j < start:
                 continue
