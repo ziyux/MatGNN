@@ -212,8 +212,7 @@ class MaterialsProject(MatDataset):
         graphs_saved = []
         for cell in cells_sub:
             graphs_saved.append(self.construct_graph(cell))
-        save_graphs(f'{self.raw_path}/graphs/graphs.' + str(i) + '.bin', graphs_saved,
-                    {'cutoff': self.gc.cutoff})
+        save_graphs(f'{self.raw_path}/graphs/graphs.' + str(i) + '.bin', graphs_saved)
 
     def construct_graph(self, cell):
         if self.gc.connect_method == 'PBC':
