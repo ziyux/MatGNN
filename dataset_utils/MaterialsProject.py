@@ -224,8 +224,8 @@ class MaterialsProject(MatDataset):
             # rbf, sbf, tbf = SphericalFeatures(num_spherical=3, num_radial=6, cutoff=5)(dist, angle, torsion, idx_kj)
             # fea_saved.append({'idx_kj': idx_kj, 'idx_ji': idx_ji, 'rbf': rbf, 'sbf': sbf, 'tbf': tbf})
 
-        save_info(f'{self.raw_path}/info/info.' + str(idx) + '.pkl', {'fea': fea_saved})
-        # save_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin', graphs_saved)
+        # save_info(f'{self.raw_path}/info/info.' + str(idx) + '.pkl', {'fea': fea_saved})
+        save_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin', graphs_saved)
 
 
 
