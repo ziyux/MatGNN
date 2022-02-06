@@ -8,7 +8,8 @@ from pymatgen.ext.matproj import MPRester
 from dgl.data.utils import save_info, load_info, save_graphs, load_graphs
 
 from dataset_utils.matdataset import MatDataset
-from graph import GraphConstructor
+from graph import GraphConstructor, SphericalFeatures
+from fe_utils.sph_fea import xyz_to_dat
 
 
 class MaterialsProject(MatDataset):
@@ -68,7 +69,7 @@ class MaterialsProject(MatDataset):
             runs = []
             runs_num = int((len(self.criteria) - start) / step) + \
                        int((len(self.criteria) - start) % step != 0) if (len(self.criteria) - start) >= 0 else 0
-            for i in range(runs_num):
+            for i in range(start/step, start/step + runs_num):
                 if i < runs_num - 1:
                     runs.append(range(start + i * step, start + (i + 1) * step))
                 else:
@@ -121,7 +122,7 @@ class MaterialsProject(MatDataset):
 
             # multiprocessing download structures
             pool = Pool()
-            for i in range(runs_num):
+            for i in range(start/step, start/step + runs_num):
                 pool.apply_async(self.sub_process, args=(lookup, runs[i], i))
             pool.close()
             pool.join()
@@ -157,7 +158,7 @@ class MaterialsProject(MatDataset):
                     runs.append((start + i * step, start + (i + 1) * step))
                 else:
                     runs.append((start + i * step, len(cells)))
-            for i in tqdm(range(runs_num), desc='Construct graphs'):
+            for i in tqdm(range(start/step, start/step + runs_num), desc='Construct graphs'):
                 self.sub_construct_graph(cells, runs[i], i)
 
             idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/graphs')]
@@ -210,9 +211,22 @@ class MaterialsProject(MatDataset):
         # cells_sub = tqdm(cells_sub, desc='Construct graph ' + str(i), total=len(cells_sub))\
         #     if self.verbose else cells_sub
         graphs_saved = []
+        fea_saved = []
         for cell in cells_sub:
-            graphs_saved.append(self.construct_graph(cell))
+            graph = self.construct_graph(cell)
+            graphs_saved.append(graph)
+
+            pos = graph.ndata['coords']
+            edge_index = graph.edges()
+            num_nodes = graph.num_nodes()
+            dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
+            rbf, sbf, tbf = SphericalFeatures(num_spherical=3, num_radial=6, cutoff=5)(dist, angle, torsion, idx_kj)
+            fea_saved.append({'idx_kj': idx_kj, 'idx_ji': idx_ji, 'rbf': rbf, 'sbf': sbf, 'tbf': tbf})
+
+        save_info(f'{self.raw_path}/info/info.' + str(i) + '.bin', {'fea': fea_saved})
         save_graphs(f'{self.raw_path}/graphs/graphs.' + str(i) + '.bin', graphs_saved)
+
+
 
     def construct_graph(self, cell):
         if self.gc.connect_method == 'PBC':
@@ -241,7 +255,10 @@ class MaterialsProject(MatDataset):
     def query(self, criteria, properties, i=0):
         with MPRester(api_key=self.api_key) as mpr:
             try:
-                return mpr.query(criteria=criteria, properties=properties)
+                info = mpr.query(criteria=criteria, properties=properties)
+                if not info:
+                    print('Nan: ', criteria, info)
+                return info
             except KeyboardInterrupt:
                 raise KeyboardInterrupt
             except:
