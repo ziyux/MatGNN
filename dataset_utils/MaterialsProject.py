@@ -149,7 +149,7 @@ class MaterialsProject(MatDataset):
             # for cell in cells:
             #     self.graphs_saved.append(self.construct_graph(cell))
             step = 1
-            start = self.read_temp(f'{self.raw_path}/info', '.pkl', step)
+            # start = self.read_temp(f'{self.raw_path}/info', '.pkl', step)
             start = self.read_temp(f'{self.raw_path}/graphs', '.bin', step)
             runs = []
             runs_num = int((len(cells) - start) / step) + int((len(cells) - start) % step != 0) \
@@ -217,15 +217,15 @@ class MaterialsProject(MatDataset):
             graph = self.construct_graph(cell)
             graphs_saved.append(graph)
 
-            pos = graph.ndata['coords']
-            edge_index = graph.edges()
-            num_nodes = graph.num_nodes()
-            dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
-            rbf, sbf, tbf = SphericalFeatures(num_spherical=3, num_radial=6, cutoff=5)(dist, angle, torsion, idx_kj)
-            fea_saved.append({'idx_kj': idx_kj, 'idx_ji': idx_ji, 'rbf': rbf, 'sbf': sbf, 'tbf': tbf})
+            # pos = graph.ndata['coords']
+            # edge_index = graph.edges()
+            # num_nodes = graph.num_nodes()
+            # dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
+            # rbf, sbf, tbf = SphericalFeatures(num_spherical=3, num_radial=6, cutoff=5)(dist, angle, torsion, idx_kj)
+            # fea_saved.append({'idx_kj': idx_kj, 'idx_ji': idx_ji, 'rbf': rbf, 'sbf': sbf, 'tbf': tbf})
 
         save_info(f'{self.raw_path}/info/info.' + str(idx) + '.pkl', {'fea': fea_saved})
-        save_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin', graphs_saved)
+        # save_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin', graphs_saved)
 
 
 
