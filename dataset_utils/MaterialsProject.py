@@ -69,7 +69,7 @@ class MaterialsProject(MatDataset):
             runs = []
             runs_num = int((len(self.criteria) - start) / step) + \
                        int((len(self.criteria) - start) % step != 0) if (len(self.criteria) - start) >= 0 else 0
-            for i in range(start/step, start/step + runs_num):
+            for i in range(runs_num):
                 if i < runs_num - 1:
                     runs.append(range(start + i * step, start + (i + 1) * step))
                 else:
@@ -77,7 +77,7 @@ class MaterialsProject(MatDataset):
 
             # multiprocessing query
             pool = Pool()
-            for i in range(runs_num):
+            for i in range(int(start/step), int(start/step + runs_num)):
                 pool.apply_async(self.sub_download, args=(runs[i], i))
             pool.close()
             pool.join()
@@ -122,7 +122,7 @@ class MaterialsProject(MatDataset):
 
             # multiprocessing download structures
             pool = Pool()
-            for i in range(start/step, start/step + runs_num):
+            for i in range(int(start/step), int(start/step + runs_num)):
                 pool.apply_async(self.sub_process, args=(lookup, runs[i], i))
             pool.close()
             pool.join()
@@ -158,7 +158,7 @@ class MaterialsProject(MatDataset):
                     runs.append((start + i * step, start + (i + 1) * step))
                 else:
                     runs.append((start + i * step, len(cells)))
-            for i in tqdm(range(start/step, start/step + runs_num), desc='Construct graphs'):
+            for i in tqdm(range(int(start/step), int(start/step + runs_num)), desc='Construct graphs'):
                 self.sub_construct_graph(cells, runs[i], i)
 
             idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/graphs')]
