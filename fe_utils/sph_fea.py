@@ -20,18 +20,18 @@ except ImportError:
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def retrieve_sph_fea(graph, idx, raw_path):
-    rbf, sbf, tbf = torch.tensor([], dtype = torch.float32, device = device), torch.tensor([], dtype = torch.float32, device = device), torch.tensor([], dtype = torch.float32, device = device)
+    dist, angle, torsion = torch.tensor([], dtype = torch.float32, device = device), torch.tensor([], dtype = torch.float32, device = device), torch.tensor([], dtype = torch.float32, device = device)
     idx_kj, idx_ji = torch.tensor([], dtype = torch.int64, device=device), torch.tensor([], dtype = torch.int64, device=device)
     for i in range(len(idx)):
         pre_edges = sum(graph.batch_num_edges()[:i]) if i > 0 else 0
         sph_fea = load_info(f'{raw_path}/info/info.' + str(int(idx[i])) + '.pkl')['fea']
-        rbf1, sbf1, tbf1, idx_kj1, idx_ji1 = sph_fea['rbf'], sph_fea['sbf'], sph_fea['tbf'], sph_fea['idx_kj'], sph_fea['idx_ji']
-        rbf = torch.cat((rbf, rbf1))
-        sbf = torch.cat((sbf, sbf1))
-        tbf = torch.cat((tbf, tbf1))
+        dist1, angle1, torsion1, idx_kj1, idx_ji1 = sph_fea['dist'], sph_fea['angle'], sph_fea['torsion'], sph_fea['idx_kj'], sph_fea['idx_ji']
+        dist = torch.cat((dist, dist1))
+        angle = torch.cat((angle, angle1))
+        torsion = torch.cat((torsion, torsion1))
         idx_kj = torch.cat((idx_kj, idx_kj1+pre_edges))
         idx_ji = torch.cat((idx_ji, idx_ji1+pre_edges))
-    return rbf, sbf, tbf, idx_kj, idx_ji
+    return dist, angle, torsion, idx_kj, idx_ji
 
 
 def xyz_to_dat(pos, edge_index, num_nodes, use_torsion=False):

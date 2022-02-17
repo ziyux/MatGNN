@@ -109,9 +109,9 @@ class MatGNN(object):
         loader = self.check_input(loader, 'test_loader')
         criterion = self.check_input(criterion, 'criterion')
         valid_loss = []
-        for step, (batched_graph, label) in enumerate(tqdm(loader, desc='Evaluating')):
+        for step, (batched_graph, (label, idx)) in enumerate(tqdm(loader, desc='Evaluating')):
             with torch.no_grad():
-                logits = self.model(batched_graph)
+                logits = self.model(batched_graph, idx)
                 loss = criterion(logits.flatten(), label)
                 valid_loss.append(loss)
         return sum(valid_loss)/(step + 1)
@@ -121,9 +121,9 @@ class MatGNN(object):
         loader = self.check_input(loader, 'test_loader')
         predicts = []
         self.model.eval()
-        for step, (batched_graph, labels) in enumerate(tqdm(loader, desc='Predicting')):
+        for step, (batched_graph, (labels, idx)) in enumerate(tqdm(loader, desc='Predicting')):
             with torch.no_grad():
-                predicts.append(self.model(batched_graph))
+                predicts.append(self.model(batched_graph, idx))
         return predicts
 
     def save_model(self, model_name, epoch, loss, loss_list):
