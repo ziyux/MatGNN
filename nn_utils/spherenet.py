@@ -10,7 +10,7 @@ from torch_scatter import scatter
 from math import sqrt
 
 # from dig.threedgraph.method.spherenet.features import dist_emb, angle_emb, torsion_emb
-from fe_utils.sph_fea import dist_emb, angle_emb, torsion_emb, xyz_to_dat
+from fe_utils.sph_fea import dist_emb, angle_emb, torsion_emb, xyz_to_dat, retrieve_sph_fea
 
 try:
     import sympy as sym
@@ -320,19 +320,11 @@ class SphereNet(torch.nn.Module):
         else:
             image = None
         batch = torch.arange(len(graph.batch_num_nodes()), device=device).repeat_interleave(graph.batch_num_nodes())
-        
-        if 'rbf' in graph.edata:
-            rbf = graph.edata['rbf']
-            sbf = graph.edata['sbf']
-            idx_ji = sbf._indices()[0]
-            idx_kj = sbf._indices()[1]
-            sbf = sbf.to_dense()[idx_ji, idx_kj]
-            tbf = graph.edata['tbf'].to_dense()[idx_ji, idx_kj]
-            emb = (rbf, sbf, tbf)
-            j, i = graph.edges()
-        else:
-            dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
-            emb = self.emb(dist, angle, torsion, idx_kj)
+        j, i = graph.edges()
+        rbf, sbf, tbf, idx_kj, idx_ji = retrieve_sph_fea(graph, idx, 'dataset_utils/dataset_cache/MaterialsProject/cgcnn')
+        emb = (rbf, sbf, tbf)
+        # dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
+        # emb = self.emb(dist, angle, torsion, idx_kj)
 
         # Initialize edge, node, graph features
         e = self.init_e(z, emb, i, j)
