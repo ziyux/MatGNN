@@ -33,8 +33,8 @@ def retrieve_sph_fea(graph, idx, raw_path):
         idx_ji = torch.cat((idx_ji, idx_ji1+pre_edges))
     return rbf, sbf, tbf, idx_kj, idx_ji
 
-def xyz_to_dat(pos, edge_index, num_nodes, use_torsion=False):
 
+def xyz_to_dat(pos, edge_index, num_nodes, use_torsion=False):
     j, i = edge_index  # j->i
     # Calculate distances. # number of edges
     dist = (pos[i] - pos[j]).pow(2).sum(dim=-1).sqrt()
@@ -62,32 +62,31 @@ def xyz_to_dat(pos, edge_index, num_nodes, use_torsion=False):
     b = torch.cross(pos_ji, pos_jk).norm(dim=-1)  # sin_angle * |pos_ji| * |pos_jk|
     angle = torch.atan2(b, a)
 
-    idx_batch = torch.arange(len(idx_i), device=device)
-    idx_k_n = adj_t[idx_j].storage.col()
     repeat = num_triplets - 1
     num_triplets_t = num_triplets.repeat_interleave(repeat)
-    idx_i_t = idx_i.repeat_interleave(num_triplets_t)
-    idx_j_t = idx_j.repeat_interleave(num_triplets_t)
-    idx_k_t = idx_k.repeat_interleave(num_triplets_t)
-    idx_batch_t = idx_batch.repeat_interleave(num_triplets_t)
-    mask = idx_i_t != idx_k_n
-    idx_i_t, idx_j_t, idx_k_t, idx_k_n, idx_batch_t = idx_i_t[mask], idx_j_t[mask], idx_k_t[mask], idx_k_n[mask], \
-                                                    idx_batch_t[mask]
+    mask = idx_i.repeat_interleave(num_triplets_t) != adj_t[idx_j].storage.col() #mask = idx_i_t != idx_k_n
+    idx_batch = torch.arange(len(idx_i), device=device)
+    idx_k_n = lambda idx_j: adj_t[idx_j].storage.col()[mask]
+    idx_i_t = lambda idx_i: idx_i.repeat_interleave(num_triplets_t)[mask]
+    idx_j_t = lambda idx_j: idx_j.repeat_interleave(num_triplets_t)[mask]
+    idx_k_t = lambda idx_k: idx_k.repeat_interleave(num_triplets_t)[mask]
+    idx_batch_t = lambda idx_batch: idx_batch.repeat_interleave(num_triplets_t)[mask]
 
     # Calculate torsions.
     if use_torsion:
-        pos_j0 = pos[idx_k_t] - pos[idx_j_t]
-        pos_ji = pos[idx_i_t] - pos[idx_j_t]
-        pos_jk = pos[idx_k_n] - pos[idx_j_t]
-        dist_ji = pos_ji.pow(2).sum(dim=-1).sqrt()
-        plane1 = torch.cross(pos_ji, pos_j0)
-        plane2 = torch.cross(pos_ji, pos_jk)
-        a = (plane1 * plane2).sum(dim=-1)  # cos_angle * |plane1| * |plane2|
-        b = (torch.cross(plane1, plane2) * pos_ji).sum(dim=-1) / dist_ji
-        torsion1 = torch.atan2(b, a)  # -pi to pi
+        pos_j0 = lambda idx_k, idx_j: pos[idx_k_t(idx_k)] - pos[idx_j_t(idx_j)]
+        pos_ji = lambda idx_i, idx_j: pos[idx_i_t(idx_i)] - pos[idx_j_t(idx_j)]
+        pos_jk = lambda idx_j: pos[idx_k_n(idx_j)] - pos[idx_j_t(idx_j)]
+        dist_ji = lambda idx_i, idx_j: pos_ji(idx_i, idx_j).pow(2).sum(dim=-1).sqrt()
+        plane1 = lambda idx_i, idx_j, idx_k: torch.cross(pos_ji(idx_i, idx_j), pos_j0(idx_k, idx_j))
+        plane2 = lambda idx_i, idx_j: torch.cross(pos_ji(idx_i, idx_j), pos_jk(idx_j))
+        a = lambda idx_i, idx_j, idx_k: (plane1(idx_i, idx_j, idx_k) * plane2(idx_i, idx_j))\
+            .sum(dim=-1)  # cos_angle * |plane1| * |plane2|
+        b = lambda idx_i, idx_j, idx_k: (torch.cross(plane1(idx_i, idx_j, idx_k), plane2(idx_i, idx_j)) *
+                                         pos_ji(idx_i,idx_j)).sum(dim=-1) / dist_ji(idx_i, idx_j)
+        torsion1 = torch.atan2(b(idx_i, idx_j, idx_k), a(idx_i, idx_j, idx_k))  # -pi to pi
         torsion1[torsion1 <= 0] += 2 * PI  # 0 to 2pi
-        torsion = scatter(torsion1, idx_batch_t, reduce='min')
-
+        torsion = scatter(torsion1, idx_batch_t(idx_batch), reduce='min')
         return dist, angle, torsion, i, j, idx_kj, idx_ji
 
     else:
