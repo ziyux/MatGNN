@@ -164,7 +164,7 @@ class MaterialsProject(MatDataset):
 
             idx = [int(file.split('.')[-2]) for file in os.listdir(f'{self.raw_path}/graphs')]
             file_lists = [file for _, file in sorted(zip(idx, os.listdir(f'{self.raw_path}/graphs')))]
-            for file in file_lists:
+            for file in tqdm(file_lists, desc='Save graphs'):
                 if file.endswith('.bin'):
                     self.graphs_saved += load_graphs(f'{self.raw_path}/graphs/{file}')[0]
 

@@ -1,14 +1,13 @@
 import torch
 from torch import nn
 from torch.nn import Linear, Embedding
-from torch.nn import SiLU
-from torch.nn.init import xavier_uniform_
 # from torch_geometric.nn.acts import swish
 # from torch_geometric.nn.inits import glorot_orthogonal
 # from torch_geometric.nn import radius_graph
 from torch_scatter import scatter
 from math import sqrt
 
+# from dig.threedgraph.utils import xyz_to_dat
 # from dig.threedgraph.method.spherenet.features import dist_emb, angle_emb, torsion_emb
 from fe_utils.sph_fea import dist_emb, angle_emb, torsion_emb, xyz_to_dat, retrieve_sph_fea
 
@@ -36,17 +35,15 @@ class emb(torch.nn.Module):
         super(emb, self).__init__()
         self.dist_emb = dist_emb(num_radial, cutoff, envelope_exponent)
         self.angle_emb = angle_emb(num_spherical, num_radial, cutoff, envelope_exponent)
-        self.torsion_emb = torsion_emb(num_spherical, num_radial, cutoff, envelope_exponent)
         self.reset_parameters()
-
+    
     def reset_parameters(self):
         self.dist_emb.reset_parameters()
 
-    def forward(self, dist, angle, torsion, idx_kj):
+    def forward(self, dist, angle, idx_kj):
         dist_emb = self.dist_emb(dist)
         angle_emb = self.angle_emb(dist, angle, idx_kj)
-        torsion_emb = self.torsion_emb(dist, angle, torsion, idx_kj)
-        return dist_emb, angle_emb, torsion_emb
+        return dist_emb, angle_emb
 
 
 class ResidualLayer(torch.nn.Module):
@@ -69,33 +66,24 @@ class ResidualLayer(torch.nn.Module):
 
 
 class init(torch.nn.Module):
-    def __init__(self, num_radial, hidden_channels, act=swish, use_node_features=True):
+    def __init__(self, num_radial, hidden_channels, act=swish):
         super(init, self).__init__()
         self.act = act
-        self.use_node_features = use_node_features
-        if self.use_node_features:
-            self.emb = Embedding(95, hidden_channels)
-        else:  # option to use no node features and a learned embedding vector for each node instead
-            self.node_embedding = nn.Parameter(torch.empty((hidden_channels,)))
-            nn.init.normal_(self.node_embedding)
+        self.emb = Embedding(95, hidden_channels)
         self.lin_rbf_0 = Linear(num_radial, hidden_channels)
         self.lin = Linear(3 * hidden_channels, hidden_channels)
         self.lin_rbf_1 = nn.Linear(num_radial, hidden_channels, bias=False)
         self.reset_parameters()
 
     def reset_parameters(self):
-        if self.use_node_features:
-            self.emb.weight.data.uniform_(-sqrt(3), sqrt(3))
+        self.emb.weight.data.uniform_(-sqrt(3), sqrt(3))
         self.lin_rbf_0.reset_parameters()
         self.lin.reset_parameters()
         glorot_orthogonal(self.lin_rbf_1.weight, scale=2.0)
 
     def forward(self, x, emb, i, j):
-        rbf, _, _ = emb
-        if self.use_node_features:
-            x = self.emb(x)
-        else:
-            x = self.node_embedding[None, :].expand(x.shape[0], -1)
+        rbf,_ = emb
+        x = self.emb(x)
         rbf0 = self.act(self.lin_rbf_0(rbf))
         e1 = self.act(self.lin(torch.cat([x[i], x[j], rbf0], dim=-1)))
         e2 = self.lin_rbf_1(rbf) * e1
@@ -104,17 +92,14 @@ class init(torch.nn.Module):
 
 
 class update_e(torch.nn.Module):
-    def __init__(self, hidden_channels, int_emb_size, basis_emb_size_dist, basis_emb_size_angle, basis_emb_size_torsion,
-                 num_spherical, num_radial,
-                 num_before_skip, num_after_skip, act=swish):
+    def __init__(self, hidden_channels, int_emb_size, basis_emb_size, num_spherical, num_radial, 
+        num_before_skip, num_after_skip, act=swish):
         super(update_e, self).__init__()
         self.act = act
-        self.lin_rbf1 = nn.Linear(num_radial, basis_emb_size_dist, bias=False)
-        self.lin_rbf2 = nn.Linear(basis_emb_size_dist, hidden_channels, bias=False)
-        self.lin_sbf1 = nn.Linear(num_spherical * num_radial, basis_emb_size_angle, bias=False)
-        self.lin_sbf2 = nn.Linear(basis_emb_size_angle, int_emb_size, bias=False)
-        self.lin_t1 = nn.Linear(num_spherical * num_spherical * num_radial, basis_emb_size_torsion, bias=False)
-        self.lin_t2 = nn.Linear(basis_emb_size_torsion, int_emb_size, bias=False)
+        self.lin_rbf1 = nn.Linear(num_radial, basis_emb_size, bias=False)
+        self.lin_rbf2 = nn.Linear(basis_emb_size, hidden_channels, bias=False)
+        self.lin_sbf1 = nn.Linear(num_spherical * num_radial, basis_emb_size, bias=False)
+        self.lin_sbf2 = nn.Linear(basis_emb_size, int_emb_size, bias=False)
         self.lin_rbf = nn.Linear(num_radial, hidden_channels, bias=False)
 
         self.lin_kj = nn.Linear(hidden_channels, hidden_channels)
@@ -140,8 +125,6 @@ class update_e(torch.nn.Module):
         glorot_orthogonal(self.lin_rbf2.weight, scale=2.0)
         glorot_orthogonal(self.lin_sbf1.weight, scale=2.0)
         glorot_orthogonal(self.lin_sbf2.weight, scale=2.0)
-        glorot_orthogonal(self.lin_t1.weight, scale=2.0)
-        glorot_orthogonal(self.lin_t2.weight, scale=2.0)
 
         glorot_orthogonal(self.lin_kj.weight, scale=2.0)
         self.lin_kj.bias.data.fill_(0)
@@ -161,8 +144,8 @@ class update_e(torch.nn.Module):
         glorot_orthogonal(self.lin_rbf.weight, scale=2.0)
 
     def forward(self, x, emb, idx_kj, idx_ji):
-        rbf0, sbf, t = emb
-        x1, _ = x
+        rbf0, sbf = emb
+        x1,_ = x
 
         x_ji = self.act(self.lin_ji(x1))
         x_kj = self.act(self.lin_kj(x1))
@@ -177,10 +160,6 @@ class update_e(torch.nn.Module):
         sbf = self.lin_sbf2(sbf)
         x_kj = x_kj[idx_kj] * sbf
 
-        t = self.lin_t1(t)
-        t = self.lin_t2(t)
-        x_kj = x_kj * t
-
         x_kj = scatter(x_kj, idx_ji, dim=0, dim_size=x1.size(0))
         x_kj = self.act(self.lin_up(x_kj))
 
@@ -192,7 +171,7 @@ class update_e(torch.nn.Module):
             e1 = layer(e1)
         e2 = self.lin_rbf(rbf0) * e1
 
-        return e1, e2
+        return e1, e2 
 
 
 class update_v(torch.nn.Module):
@@ -240,9 +219,10 @@ class update_u(torch.nn.Module):
         return u
 
 
-class SphereNet(torch.nn.Module):
+class DimeNetPP(torch.nn.Module):
     r"""
-         The spherical message passing neural network SphereNet from the `"Spherical Message Passing for 3D Graph Networks" <https://arxiv.org/abs/2102.05013>`_ paper.
+        The re-implementation for DimeNet++ from the `"Fast and Uncertainty-Aware Directional Message Passing for Non-Equilibrium Molecules" <https://arxiv.org/abs/2011.14115>`_ paper
+        under the 3DGN gramework from `"Spherical Message Passing for 3D Graph Networks" <https://arxiv.org/abs/2102.05013v2>`_ paper.
         
         Args:
             energy_and_force (bool, optional): If set to :obj:`True`, will predict energy and take the negative of the derivative of the energy with respect to the atomic positions as predicted forces. (default: :obj:`False`)
@@ -251,9 +231,7 @@ class SphereNet(torch.nn.Module):
             hidden_channels (int, optional): Hidden embedding size. (default: :obj:`128`)
             out_channels (int, optional): Size of each output sample. (default: :obj:`1`)
             int_emb_size (int, optional): Embedding size used for interaction triplets. (default: :obj:`64`)
-            basis_emb_size_dist (int, optional): Embedding size used in the basis transformation of distance. (default: :obj:`8`)
-            basis_emb_size_angle (int, optional): Embedding size used in the basis transformation of angle. (default: :obj:`8`)
-            basis_emb_size_torsion (int, optional): Embedding size used in the basis transformation of torsion. (default: :obj:`8`)
+            basis_emb_size (int, optional): Embedding size used in the basis transformation. (default: :obj:`8`)
             out_emb_channels (int, optional): Embedding size used for atoms in the output block. (default: :obj:`256`)
             num_spherical (int, optional): Number of spherical harmonics. (default: :obj:`7`)
             num_radial (int, optional): Number of radial basis functions. (default: :obj:`6`)
@@ -261,35 +239,37 @@ class SphereNet(torch.nn.Module):
             num_before_skip (int, optional): Number of residual layers in the interaction blocks before the skip connection. (default: :obj:`1`)
             num_after_skip (int, optional): Number of residual layers in the interaction blocks before the skip connection. (default: :obj:`2`)
             num_output_layers (int, optional): Number of linear layers for the output blocks. (default: :obj:`3`)
-            act: (function, optional): The activation funtion. (default: :obj:`swish`)
-            output_init: (str, optional): The initialization fot the output. It could be :obj:`GlorotOrthogonal` and :obj:`zeros`. (default: :obj:`GlorotOrthogonal`)
-            
+            act: (function, optional): The activation funtion. (default: :obj:`swish`) 
+            output_init: (str, optional): The initialization fot the output. It could be :obj:`GlorotOrthogonal` and :obj:`zeros`. (default: :obj:`GlorotOrthogonal`)       
     """
-
     def __init__(
-            self, energy_and_force=False, cutoff=5.0, num_layers=4,
-            hidden_channels=128, out_channels=1, int_emb_size=64,
-            basis_emb_size_dist=8, basis_emb_size_angle=8, basis_emb_size_torsion=8, out_emb_channels=256,
-            num_spherical=7, num_radial=6, envelope_exponent=5,
-            num_before_skip=1, num_after_skip=2, num_output_layers=3,
-            act=swish, output_init='GlorotOrthogonal', use_node_features=True):
-        super(SphereNet, self).__init__()
+        self, energy_and_force=False, cutoff=5.0, num_layers=4, 
+        hidden_channels=128, out_channels=1, int_emb_size=64, basis_emb_size=8, out_emb_channels=256, 
+        num_spherical=7, num_radial=6, envelope_exponent=5, 
+        num_before_skip=1, num_after_skip=2, num_output_layers=3, 
+        act=swish, output_init='GlorotOrthogonal'):
+        super(DimeNetPP, self).__init__()
 
         self.cutoff = cutoff
         self.energy_and_force = energy_and_force
 
-        self.init_e = init(num_radial, hidden_channels, act, use_node_features=use_node_features)
+        self.init_e = init(num_radial, hidden_channels, act)
         self.init_v = update_v(hidden_channels, out_emb_channels, out_channels, num_output_layers, act, output_init)
         self.init_u = update_u()
         self.emb = emb(num_spherical, num_radial, self.cutoff, envelope_exponent)
-
+        
         self.update_vs = torch.nn.ModuleList([
-            update_v(hidden_channels, out_emb_channels, out_channels, num_output_layers, act, output_init) for _ in
-            range(num_layers)])
+            update_v(hidden_channels, out_emb_channels, out_channels, num_output_layers, act, output_init) for _ in range(num_layers)])
 
         self.update_es = torch.nn.ModuleList([
-            update_e(hidden_channels, int_emb_size, basis_emb_size_dist, basis_emb_size_angle, basis_emb_size_torsion,
-                     num_spherical, num_radial, num_before_skip, num_after_skip, act) for _ in range(num_layers)])
+            update_e(
+                hidden_channels, int_emb_size, basis_emb_size,
+                num_spherical, num_radial,
+                num_before_skip, num_after_skip,
+                act,
+            )
+            for _ in range(num_layers)
+        ])
 
         self.update_us = torch.nn.ModuleList([update_u() for _ in range(num_layers)])
 
@@ -304,12 +284,14 @@ class SphereNet(torch.nn.Module):
         for update_v in self.update_vs:
             update_v.reset_parameters()
 
+
     def forward(self, batch_data, idx):
         # z, pos, batch = batch_data.z, batch_data.pos, batch_data.batch
         # if self.energy_and_force:
         #     pos.requires_grad_()
         # edge_index = radius_graph(pos, r=self.cutoff, batch=batch)
         # num_nodes=z.size(0)
+        
         graph = batch_data
         edge_index = graph.edges()
         num_nodes = graph.num_nodes()
@@ -320,19 +302,19 @@ class SphereNet(torch.nn.Module):
         else:
             image = None
         batch = torch.arange(len(graph.batch_num_nodes()), device=device).repeat_interleave(graph.batch_num_nodes())
-        # j, i = graph.edges()
-        # dist, angle, torsion, idx_kj, idx_ji = retrieve_sph_fea(graph, idx, 'dataset_utils/dataset_cache/MaterialsProject/46744')
-        dist, angle, torsion, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=True)
-        emb = self.emb(dist, angle, torsion, idx_kj)
+        
+        dist, angle, i, j, idx_kj, idx_ji = xyz_to_dat(pos, edge_index, num_nodes, use_torsion=False)
 
-        # Initialize edge, node, graph features
+        emb = self.emb(dist, angle, idx_kj)
+
+        #Initialize edge, node, graph features
         e = self.init_e(z, emb, i, j)
         v = self.init_v(e, i, image)
-        u = self.init_u(torch.zeros_like(scatter(v, batch, dim=0)), v, batch)  # scatter(v, batch, dim=0)
+        u = self.init_u(torch.zeros_like(scatter(v, batch, dim=0)), v, batch) #scatter(v, batch, dim=0)
 
         for update_e, update_v, update_u in zip(self.update_es, self.update_vs, self.update_us):
             e = update_e(e, emb, idx_kj, idx_ji)
             v = update_v(e, i, image)
-            u = update_u(u, v, batch)  # u += scatter(v, batch, dim=0)
+            u = update_u(u, v, batch) #u += scatter(v, batch, dim=0)
 
         return u
