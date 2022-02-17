@@ -304,7 +304,7 @@ class SphereNet(torch.nn.Module):
         for update_v in self.update_vs:
             update_v.reset_parameters()
 
-    def forward(self, batch_data):
+    def forward(self, batch_data, idx):
         # z, pos, batch = batch_data.z, batch_data.pos, batch_data.batch
         # if self.energy_and_force:
         #     pos.requires_grad_()

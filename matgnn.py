@@ -78,8 +78,8 @@ class MatGNN(object):
         for epoch in range(self.start_epoch, MAX_ITER):
             loss_list = []
             self.model.train()
-            for step, (batched_graph, label) in enumerate(tqdm(train_loader, desc='Training')):
-                logits = self.model(batched_graph)
+            for step, (batched_graph, (label, idx)) in enumerate(tqdm(train_loader, desc='Training')):
+                logits = self.model(batched_graph, idx)
                 loss = self.criterion(logits.flatten(), label)
                 loss_list.append(loss.item())
                 self.optimizer.zero_grad()

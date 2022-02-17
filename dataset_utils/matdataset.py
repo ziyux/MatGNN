@@ -95,7 +95,7 @@ class MatDataset(DGLDataset):
         # get one example by index
         self.label = self.label_dict[self.label_name]
         if self.graphs_saved and self.label is not None:
-            return self.graphs_saved[idx].to(device), self.label[idx].to(device)
+            return self.graphs_saved[idx].to(device), (self.label[idx].to(device), idx)
         else:
             # try:
             graph, label = self.getitem(idx)
@@ -106,7 +106,7 @@ class MatDataset(DGLDataset):
             #         graph, label = self.__getitem__(idx)
             #     except:
             #         raise Exception('Processed items are incomplete. Please check getitem() and process() functions.')
-            return graph.to(device), label.to(device)
+            return graph.to(device), (label.to(device), idx)
 
     def getitem(self, idx):
         raise NotImplementedError('getitem() function needs to be specified.')
