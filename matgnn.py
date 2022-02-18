@@ -79,10 +79,10 @@ class MatGNN(object):
             loss_list = []
             self.model.train()
             for step, (batched_graph, (label, idx)) in enumerate(tqdm(train_loader, desc='Training')):
+                self.optimizer.zero_grad()
                 logits = self.model(batched_graph, idx)
                 loss = self.criterion(logits.flatten(), label)
                 loss_list.append(loss.item())
-                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
             self.loss_list['train'] = train_loss = sum(loss_list)/(step+1)
