@@ -167,3 +167,68 @@ class MatDataset(DGLDataset):
     def get_loader(self, batch_size=1, drop_last=False, shuffle=False, dataset=None):
         dataset = self if dataset is None else dataset
         return GraphDataLoader(dataset, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)
+
+    # def split_dataset(self, train_rate=0.8, val_rate=0.1, test_rate=0.1, random_state=25, dataset=None):
+    #     dataset = self.dataset if dataset is None else dataset
+    #     train_mask, val_mask, test_mask = self.train_test_split(train_rate, val_rate, test_rate, random_state)
+    #     # train_set, val_set, test_set = map(lambda set_name, mask: DatasetPartition(set_name, dataset, mask),
+    #     #                                    ['train_set', 'val_set', 'test_set'], [train_mask, val_mask, test_mask])
+    #     train_set = DatasetPartition('train_set', dataset, train_mask)
+    #     val_set = DatasetPartition('val_set', dataset, val_mask)
+    #     test_set = DatasetPartition('test_set', dataset, test_mask)
+    #     return train_set, val_set, test_set, train_mask, val_mask, test_mask
+
+    # def train_test_split(self, train_rate=0.8, val_rate=0.1, test_rate=0.1, random_state=25):
+    #     samples = len(self.dataset)
+    #     train_size = int(train_rate * samples)
+    #     val_size = int(val_rate * samples)
+    #     test_size = int(test_rate * samples)
+    #     unused_size = samples - train_size - val_size - test_size
+    #     train_mask, val_mask, test_mask, unused_mask = torch.utils.data.random_split(
+    #         list(range(samples)), [train_size, val_size, test_size, unused_size],
+    #         torch.Generator().manual_seed(random_state))
+    #     return train_mask, val_mask, test_mask
+    #
+    # def get_split_loaders(self, train_mask, val_mask, test_mask, batch_size=1, drop_last=False, shuffle=False):
+    #     train_set = DatasetPartition('train_set', self.dataset, train_mask)
+    #     self.train_loader = GraphDataLoader(train_set, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)
+    #     val_set = DatasetPartition('val_set', self.dataset, val_mask)
+    #     self.val_loader = GraphDataLoader(val_set, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)
+    #     test_set = DatasetPartition('test_set', self.dataset, test_mask)
+    #     self.test_loader = GraphDataLoader(test_set, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)
+    #     return self.train_loader, self.val_loader, self.test_loader, train_set, val_set, test_set
+
+
+    # class DatasetPartition(DGLDataset):
+    #
+    #     def __init__(self,
+    #                  name,
+    #                  dataset,
+    #                  mask,
+    #                  url=None,
+    #                  raw_dir=None,
+    #                  save_dir=None,
+    #                  force_reload=False,
+    #                  verbose=False):
+    #         self.dataset = dataset
+    #         self.mask = mask
+    #         super(DatasetPartition, self).__init__(name=name,
+    #                                                url=url,
+    #                                                raw_dir=raw_dir,
+    #                                                save_dir=save_dir,
+    #                                                force_reload=force_reload,
+    #                                                verbose=verbose)
+    #
+    #     def process(self):
+    #         # process raw data to graphs, labels, splitting masks
+    #         pass
+    #
+    #     def __getitem__(self, idx):
+    #         # get one example by index
+    #         graph = self.dataset[self.mask[idx]][0]
+    #         label = self.dataset[self.mask[idx]][1]
+    #         return graph, label
+    #
+    #     def __len__(self):
+    #         # number of data examples
+    #         return len(self.mask)

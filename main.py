@@ -1,5 +1,5 @@
 import sys
-from dataset import Dataloader
+from dataset import dataloader
 from matgnn import MatGNN
 from nn_utils.spherenet import SphereNet
 from nn_utils.dimenetpp import DimeNetPP
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     for material_id in list(getattr(mpid, 'material_id')):
         criterias.append({"material_id": material_id})
 
-    data = Dataloader(
+    data = dataloader(
         dataset_name, label_name, connect_method=connect_method, cutoff=cutoff, verbose=True, force_reload=False,
         save_graphs=True, save_name='46744', node_fea_sel=node_fea_sel, edge_fea_sel=edge_fea_sel, criteria=criterias,
         api_key=api_key)
