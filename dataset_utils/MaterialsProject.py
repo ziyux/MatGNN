@@ -143,6 +143,9 @@ class MaterialsProject(MatDataset):
                 if label_name != 'task_id' and label_name != 'pretty_formula':
                     label_dict[label_name] = torch.tensor(label_dict[label_name], dtype=torch.float32)
             self.label_dict = label_dict
+
+        self.data_saved = {'cells': cells}
+
         if self.save_graphs:
 
             # cells = tqdm(cells, desc='Construct graph', total=len(cells)) if self.verbose else cells
@@ -179,8 +182,7 @@ class MaterialsProject(MatDataset):
             #     graphs_saved += self.graphs_saved[i]
             # self.graphs_saved = graphs_saved
             # print(graphs_saved)
-        else:
-            self.data_saved = {'cells': cells}
+
         # self.clean_temp(f'{self.raw_path}/temp')
 
     def sub_process(self, lookup, run, i):

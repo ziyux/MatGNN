@@ -5,6 +5,9 @@ from dgl.data import DGLDataset
 from dgl.data.utils import download, _get_dgl_url, save_info, load_info, makedirs
 from dgl import save_graphs, load_graphs
 
+from dgl.data.utils import split_dataset
+from dgl.dataloading import GraphDataLoader
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -142,3 +145,25 @@ class MatDataset(DGLDataset):
     def has_cache(self):
         data_file = os.path.join(self.raw_path, self._name + '_data.pkl')
         return os.path.exists(data_file)
+
+    def get_split_loaders(self, train_rate=0.8, valid_rate=0.1, test_rate=0.1, batch_size=1, random_state=25,
+                          shuffle=False, drop_last=False, dataset=None):
+        dataset = self if dataset is None else dataset
+        train_set, valid_set, test_set = self.split_dataset(train_rate=train_rate, valid_rate=valid_rate,
+                                                            test_rate=test_rate,
+                                                            random_state=random_state, dataset=dataset)
+        train_loader, valid_loader, test_loader = map(
+            lambda splitdataset: self.get_loader(batch_size, drop_last, shuffle, splitdataset),
+            [train_set, valid_set, test_set])
+        return train_loader, valid_loader, test_loader
+
+    def split_dataset(self, train_rate=0.8, valid_rate=0.1, test_rate=0.1, shuffle=False, random_state=25,
+                      dataset=None):
+        dataset = self if dataset is None else dataset
+        train_set, valid_set, test_set = split_dataset(dataset, [train_rate, valid_rate, test_rate], shuffle=shuffle,
+                                                       random_state=random_state)
+        return train_set, valid_set, test_set
+
+    def get_loader(self, batch_size=1, drop_last=False, shuffle=False, dataset=None):
+        dataset = self if dataset is None else dataset
+        return GraphDataLoader(dataset, batch_size=batch_size, drop_last=drop_last, shuffle=shuffle)

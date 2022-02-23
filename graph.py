@@ -1,22 +1,10 @@
-import pickle
 import numpy as np
-
 import torch
 
 from dgl.convert import graph as dgl_graph
 from dgl.transform import to_bidirected
 
 from fe_utils.sph_fea import dist_emb, angle_emb, torsion_emb, xyz_to_dat
-
-
-def save_pickle(filename, obj):
-    with open(filename, 'wb+') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-
-def read_pickle(filename):
-    with open(filename, 'rb') as f:
-        return pickle.load(f)
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,6 +15,7 @@ class GraphConstructor(object):
                  connect_method='CWC',
                  cutoff=5,
                  k=None,
+                 strict=False,
                  gaussian_step=None,
                  num_spherical=None,
                  num_radial=None,
@@ -34,6 +23,7 @@ class GraphConstructor(object):
         self.connect_method = connect_method
         self.cutoff = cutoff
         self.k = k
+        self.strict = strict
         self.gaussian_step = gaussian_step
         if self.gaussian_step:
             self.ge = GaussianExpansion(0, cutoff, step=gaussian_step)
@@ -69,7 +59,7 @@ class GraphConstructor(object):
             graph.edata['rbf'], graph.edata['sbf'], graph.edata['tbf'] = rbf, sbf_sparse, tbf_sparse
         return graph
 
-    def periodic_boundary_condition(self, cell, cutoff):
+    def periodic_boundary_condition(self, cell, cutoff, k=None):
         cart_coords = []
         image = []
         index_dict = {}
@@ -83,8 +73,9 @@ class GraphConstructor(object):
         all_nbr = cell.get_all_neighbors(cutoff)
         u, v = [], []
         for i in range(len(all_nbr)):
-            v += [i] * len(all_nbr[i])
-            for nbr in all_nbr[i]:
+            nbrs = self.choose_k_nearest_PBC(all_nbr[i], k) if k else all_nbr[i]
+            v += [i] * len(nbrs)
+            for nbr in nbrs:
                 if str(nbr._species) + str(nbr.coords) in index_dict:
                     u.append(index_dict[str(nbr._species) + str(nbr.coords)])
                 else:
@@ -102,12 +93,22 @@ class GraphConstructor(object):
 
         return graph
 
+    def choose_k_nearest_PBC(self, nbrs, k):
+        if len(nbrs) > k:
+            if self.strict:
+                nbrs = sorted(nbrs, key=lambda x: x.nn_distance)[:k]
+            else:
+                dist = torch.tensor([nbr.nn_distance for nbr in nbrs], dtype=torch.float32)
+                threshold = dist[dist.argsort()[k - 1]]
+                nbrs = [nbrs[i] for i in torch.where(dist <= threshold)[0].tolist()]
+        return nbrs
+
     def connect_within_cutoff(self, coords, cutoff, k=None):
         coords = torch.tensor(coords, dtype=torch.float32)
         dist = torch.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=-1)
         adj = (dist <= cutoff).long() - torch.eye(len(coords))
         if k is not None:
-            adj = self.choose_k_nearest(adj, dist, k)
+            adj = self.choose_k_nearest_CWC(adj, dist, k)
         adj = adj + adj.T
         adj = adj.bool().to_sparse()
         u, v = adj.indices()
@@ -123,11 +124,14 @@ class GraphConstructor(object):
             graph.edata['gaussian_dist'] = gaussian_dist
         return graph
 
-    def choose_k_nearest(self, adj, dist, k):
+    def choose_k_nearest_CWC(self, adj, dist, k, strict):
         for row in range(len(adj)):
             if len(dist[row, :]) > k:
-                threshold = dist[row, dist[row, :].argsort()[k - 1]]
-                adj[row, dist[row, :] > threshold] = 0
+                if self.strict:
+                    adj[row, dist[row, :].argsort()[:k]] = 0
+                else:
+                    threshold = dist[row, dist[row, :].argsort()[k - 1]]
+                    adj[row, dist[row, :] > threshold] = 0
         return adj
 
 
