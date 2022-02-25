@@ -5,6 +5,7 @@ from torch.nn.functional import mse_loss, l1_loss
 from torch.optim.lr_scheduler import StepLR
 from torch.optim import Adam
 from tqdm import tqdm
+import gc
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -81,10 +82,14 @@ class MatGNN(object):
             for step, (batched_graph, (label, idx)) in enumerate(tqdm(train_loader, desc='Training')):
                 self.optimizer.zero_grad()
                 logits = self.model(batched_graph, idx)
+                gc.collect()
+                torch.cuda.empty_cache()
                 loss = self.criterion(logits.flatten(), label)
                 loss_list.append(loss.item())
                 loss.backward()
                 self.optimizer.step()
+                gc.collect()
+                torch.cuda.empty_cache()
             self.loss_list['train'] = train_loss = sum(loss_list)/(step+1)
             self.loss_list['valid'] = valid_loss = self.score(loader=valid_loader)
 
