@@ -77,45 +77,38 @@ class MatGNN(object):
         valid_loader = self.check_input(valid_loader, 'valid_loader')
         self.load_model(model_name)
         for epoch in range(self.start_epoch, MAX_ITER):
-            loss_list = []
-            self.model.train()
-            for step, (batched_graph, (label, idx)) in enumerate(tqdm(train_loader, desc='Training')):
-                try:
+            try:
+                loss_list = []
+                self.model.train()
+                for step, (batched_graph, (label, idx)) in enumerate(tqdm(train_loader, desc='Training')):
                     self.optimizer.zero_grad()
                     logits = self.model(batched_graph, idx)
-                except RuntimeError:
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    self.optimizer.zero_grad()
-                    logits = self.model(batched_graph, idx)
-                loss = self.criterion(logits.flatten(), label)
-                loss_list.append(loss.item())
-                try:
+                    loss = self.criterion(logits.flatten(), label)
+                    loss_list.append(loss.item())
                     loss.backward()
                     self.optimizer.step()
-                except RuntimeError:
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    loss.backward()
-                    self.optimizer.step()
-            self.loss_list['train'] = train_loss = sum(loss_list)/(step+1)
-            self.loss_list['valid'] = valid_loss = self.score(loader=valid_loader)
+                self.loss_list['train'] = train_loss = sum(loss_list)/(step+1)
+                self.loss_list['valid'] = valid_loss = self.score(loader=valid_loader)
 
-            if valid_loss < self.valid_loss:
-                self.valid_loss = valid_loss
-                self.save_model('bestmodel.tar', epoch, self.valid_loss, self.loss_list)
-            self.save_model('checkpoint.tar', epoch, self.valid_loss, self.loss_list)
+                if valid_loss < self.valid_loss:
+                    self.valid_loss = valid_loss
+                    self.save_model('bestmodel.tar', epoch, self.valid_loss, self.loss_list)
+                self.save_model('checkpoint.tar', epoch, self.valid_loss, self.loss_list)
 
-            if use_tensorboard:
-                self.writer.add_scalar('Loss/train', train_loss, epoch)
-                self.writer.add_scalar('Loss/valid', valid_loss, epoch)
-            self.printf('[' + str(self.local_time()) + ']' +
-                        '    Epoch: ' + str(epoch + 1) + '/' + str(MAX_ITER) +
-                        '    Train_Loss: ' + str(float(train_loss)) +
-                        '    Valid_Loss: ' + str(float(valid_loss)) +
-                        '    Best_Loss: ' + str(float(self.valid_loss)) + '\n',
-                        filename=os.path.join(self.result_dir, 'log.txt'))
-            self.scheduler.step()
+                if use_tensorboard:
+                    self.writer.add_scalar('Loss/train', train_loss, epoch)
+                    self.writer.add_scalar('Loss/valid', valid_loss, epoch)
+                self.printf('[' + str(self.local_time()) + ']' +
+                            '    Epoch: ' + str(epoch + 1) + '/' + str(MAX_ITER) +
+                            '    Train_Loss: ' + str(float(train_loss)) +
+                            '    Valid_Loss: ' + str(float(valid_loss)) +
+                            '    Best_Loss: ' + str(float(self.valid_loss)) + '\n',
+                            filename=os.path.join(self.result_dir, 'log.txt'))
+                self.scheduler.step()
+            except RuntimeError:
+                gc.collect()
+                torch.cuda.empty_cache()
+                continue
 
     def score(self, criterion=None, loader=None):
         self.model.eval()
