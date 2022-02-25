@@ -105,7 +105,8 @@ class MatGNN(object):
                             '    Best_Loss: ' + str(float(self.valid_loss)) + '\n',
                             filename=os.path.join(self.result_dir, 'log.txt'))
                 self.scheduler.step()
-            except RuntimeError:
+            except RuntimeError as e:
+                print('Warning: ', e)
                 gc.collect()
                 torch.cuda.empty_cache()
                 continue
