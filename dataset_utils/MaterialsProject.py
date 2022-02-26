@@ -250,7 +250,9 @@ class MaterialsProject(MatDataset):
     def getitem(self, idx):
         # get one example by index\
         if self.save_graphs:
-            raise Exception('Reprocess to save graphs.')
+            if not self.graphs_saved:
+                print('Reprocess to save graphs')
+                self.process()
         label = self.label[idx]
         try:
             graph = load_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin')[0][0]
