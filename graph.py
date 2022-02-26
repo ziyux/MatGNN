@@ -34,9 +34,9 @@ class GraphConstructor(object):
 
     def connect_graph(self, R):
         if self.connect_method == 'CWC':
-            graph = self.connect_within_cutoff(R, self.cutoff, self.k)
+            graph = self.connect_within_cutoff(R, self.cutoff, self.k, self.strict)
         elif self.connect_method == 'PBC':
-            graph = self.periodic_boundary_condition(R, self.cutoff)
+            graph = self.periodic_boundary_condition(R, self.cutoff, self.k, self.strict)
         else:
             raise ValueError('Invalid graph connection method.')
         return graph
@@ -59,7 +59,7 @@ class GraphConstructor(object):
             graph.edata['rbf'], graph.edata['sbf'], graph.edata['tbf'] = rbf, sbf_sparse, tbf_sparse
         return graph
 
-    def periodic_boundary_condition(self, cell, cutoff, k=None):
+    def periodic_boundary_condition(self, cell, cutoff, k=None, strict=None):
         cart_coords = []
         image = []
         index_dict = {}
@@ -73,7 +73,7 @@ class GraphConstructor(object):
         all_nbr = cell.get_all_neighbors(cutoff)
         u, v = [], []
         for i in range(len(all_nbr)):
-            nbrs = self.choose_k_nearest_PBC(all_nbr[i], k) if k else all_nbr[i]
+            nbrs = self.choose_k_nearest_PBC(all_nbr[i], k, strict) if k else all_nbr[i]
             v += [i] * len(nbrs)
             for nbr in nbrs:
                 if str(nbr._species) + str(nbr.coords) in index_dict:
@@ -93,9 +93,9 @@ class GraphConstructor(object):
 
         return graph
 
-    def choose_k_nearest_PBC(self, nbrs, k):
+    def choose_k_nearest_PBC(self, nbrs, k, strict):
         if len(nbrs) > k:
-            if self.strict:
+            if strict:
                 nbrs = sorted(nbrs, key=lambda x: x.nn_distance)[:k]
             else:
                 dist = torch.tensor([nbr.nn_distance for nbr in nbrs], dtype=torch.float32)
@@ -103,12 +103,12 @@ class GraphConstructor(object):
                 nbrs = [nbrs[i] for i in torch.where(dist <= threshold)[0].tolist()]
         return nbrs
 
-    def connect_within_cutoff(self, coords, cutoff, k=None):
+    def connect_within_cutoff(self, coords, cutoff, k=None, strict=None):
         coords = torch.tensor(coords, dtype=torch.float32)
         dist = torch.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=-1)
         adj = (dist <= cutoff).long() - torch.eye(len(coords))
         if k is not None:
-            adj = self.choose_k_nearest_CWC(adj, dist, k)
+            adj = self.choose_k_nearest_CWC(adj, dist, k, strict)
         adj = adj + adj.T
         adj = adj.bool().to_sparse()
         u, v = adj.indices()
@@ -127,7 +127,7 @@ class GraphConstructor(object):
     def choose_k_nearest_CWC(self, adj, dist, k, strict):
         for row in range(len(adj)):
             if len(dist[row, :]) > k:
-                if self.strict:
+                if strict:
                     adj[row, dist[row, :].argsort()[:k]] = 0
                 else:
                     threshold = dist[row, dist[row, :].argsort()[k - 1]]

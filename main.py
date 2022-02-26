@@ -23,7 +23,7 @@ if __name__ == "__main__":
     valid_rate = 0.2
     test_rate = 0.2
     resume = False
-    api_key = '3X2CKEKcGGAJyml3Suu8'
+    api_key = None
 
     mpid = pd.read_csv(f'../dataset_utils/dataset_cache/MaterialsProject/mp-ids-46744.csv', header=0,
                        names=['material_id'])
