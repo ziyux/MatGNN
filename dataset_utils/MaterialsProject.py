@@ -56,7 +56,7 @@ class MaterialsProject(MatDataset):
                                                verbose=verbose,
                                                download_name=download_name)
         # load saved data
-        if not self.save_graphs:
+        if 'cells' in self.data_saved:
             self.cells = self.data_saved['cells']
 
     def download(self):
@@ -254,7 +254,7 @@ class MaterialsProject(MatDataset):
         label = self.label[idx]
         try:
             graph = load_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin')[0][0]
-        except FileNotFoundError:
+        except:
             graph = self.construct_graph(self.cells[idx])
         return graph, label
 
