@@ -106,7 +106,7 @@ class MatGNN(object):
                             filename=os.path.join(self.result_dir, 'log.txt'))
                 self.scheduler.step()
             except RuntimeError as e:
-                self.printf('Warning: ' + str(e), filename=os.path.join(self.result_dir, 'log.txt'))
+                self.printf('Warning: ' + str(e) + '\n', filename=os.path.join(self.result_dir, 'log.txt'))
                 gc.collect()
                 torch.cuda.empty_cache()
                 continue
