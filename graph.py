@@ -37,6 +37,8 @@ class GraphConstructor(object):
             graph = self.connect_within_cutoff(R, self.cutoff, self.k, self.strict)
         elif self.connect_method == 'PBC':
             graph = self.periodic_boundary_condition(R, self.cutoff, self.k, self.strict)
+        elif self.connect_method == 'CGC':
+            graph = self.cgcnn_connect(R, self.cutoff, self.k)
         else:
             raise ValueError('Invalid graph connection method.')
         return graph
@@ -57,6 +59,38 @@ class GraphConstructor(object):
             idx = torch.concat((idx_ji.reshape(1, -1), idx_kj.reshape(1, -1)))
             sbf_sparse, tbf_sparse = map(lambda sf: torch.sparse_coo_tensor(idx, sf, (graph.num_edges(), graph.num_edges(), sf.size()[1])), (sbf, tbf))
             graph.edata['rbf'], graph.edata['sbf'], graph.edata['tbf'] = rbf, sbf_sparse, tbf_sparse
+        return graph
+
+    def cgcnn_connect(self, cell, cutoff, k):
+        all_nbrs = cell.get_all_neighbors(cutoff, include_index=True)
+        all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
+        nbr_fea_idx, nbr_fea = [], []
+        for nbr in all_nbrs:
+            if len(nbr) < k:
+                print('not find enough neighbors to build graph. '
+                      'If it happens frequently, consider increase '
+                      'radius.')
+                nbr_fea_idx.append(list(map(lambda x: x[2], nbr)) +
+                                   [0] * (k - len(nbr)))
+                nbr_fea.append(list(map(lambda x: x[1], nbr)) +
+                               [cutoff + 1.] * (k - len(nbr)))
+            else:
+                nbr_fea_idx.append(list(map(lambda x: x[2], nbr[:k])))
+                nbr_fea.append(list(map(lambda x: x[1], nbr[:k])))
+        nbr_fea_idx, nbr_fea = np.array(nbr_fea_idx), np.array(nbr_fea)
+        nbr_fea_idx = torch.LongTensor(nbr_fea_idx)
+        u = torch.tensor([[i] * len(nbr_fea_idx[i]) for i in range(len(nbr_fea_idx))], dtype=torch.long).flatten()
+        v = nbr_fea_idx.flatten()
+        graph = dgl_graph((u, v))
+        # graph = to_bidirected(graph)
+        graph = graph.to(device)
+        graph.ndata['nbr_fea_idx'] = nbr_fea_idx
+        graph.ndata['image'] = torch.arange(len(cell), device=device)
+        graph.ndata['coords'] = torch.tensor(cell.cart_coords, dtype=torch.float64, device=device)
+        graph.ndata['dist'] = torch.tensor(nbr_fea, dtype=torch.float32, device=device)
+        if self.gaussian_step:
+            gaussian_dist = self.ge.expand(graph.ndata['dist'])
+            graph.edata['gaussian_dist'] = gaussian_dist
         return graph
 
     def periodic_boundary_condition(self, cell, cutoff, k=None, strict=None):
@@ -140,7 +174,7 @@ class GaussianExpansion(object):
     def __init__(self,
                  dmin,
                  dmax,
-                 step=0.5,
+                 step=0.2,
                  var=None):
         assert dmin < dmax
         assert dmax - dmin > step

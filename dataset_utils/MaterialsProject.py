@@ -232,7 +232,7 @@ class MaterialsProject(MatDataset):
 
 
     def construct_graph(self, cell):
-        if self.gc.connect_method == 'PBC':
+        if self.gc.connect_method == 'PBC' or self.gc.connect_method == 'CGC':
             graph = self.gc.connect_graph(cell)
             image = graph.ndata['image']
             atomic_number = torch.tensor([element.data['Atomic no']
