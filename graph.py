@@ -89,7 +89,7 @@ class GraphConstructor(object):
         graph.ndata['dist'] = torch.tensor(nbr_fea, dtype=torch.float32, device=device)
         if self.gaussian_step:
             gaussian_dist = self.ge.expand(graph.ndata['dist'])
-            graph.edata['gaussian_dist'] = gaussian_dist
+            graph.ndata['gaussian_dist'] = gaussian_dist
         return graph
 
     def periodic_boundary_condition(self, cell, cutoff, k=None, strict=None):
