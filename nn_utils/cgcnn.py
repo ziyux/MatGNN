@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class ConvLayer(nn.Module):
     """
@@ -120,7 +121,7 @@ class CrystalGraphConvNet(nn.Module):
             self.logsoftmax = nn.LogSoftmax(dim=1)
             self.dropout = nn.Dropout()
 
-    def forward(self, atom_fea, nbr_fea, nbr_fea_idx, crystal_atom_idx):
+    def forward(self, graph, idx):
         """
         Forward pass
 
@@ -147,6 +148,12 @@ class CrystalGraphConvNet(nn.Module):
           Atom hidden features after convolution
 
         """
+
+        atom_fea = graph.ndata['atomic_number']
+        nbr_fea = graph.ndata['gaussian_dist']
+        nbr_fea_idx = graph.ndata['nbr_fea_idx']
+        batch = graph.batch_num_nodes()
+        crystal_atom_idx = [graph.nodes()[sum(batch[:i]): sum(batch[:i]) + batch[i]] for i in range(len(batch))]
         atom_fea = self.embedding(atom_fea)
         for conv_func in self.convs:
             atom_fea = conv_func(atom_fea, nbr_fea, nbr_fea_idx)
