@@ -149,7 +149,7 @@ class CrystalGraphConvNet(nn.Module):
 
         """
 
-        atom_fea = graph.ndata['atomic_number']
+        atom_fea = graph.ndata['atomic_number'].reshape(-1,1)
         nbr_fea = graph.ndata['gaussian_dist']
         nbr_fea_idx = graph.ndata['nbr_fea_idx']
         batch = graph.batch_num_nodes()
