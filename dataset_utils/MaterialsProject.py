@@ -253,11 +253,13 @@ class MaterialsProject(MatDataset):
             if not self.graphs_saved:
                 print('Reprocess to save graphs')
                 self.process()
-        label = self.label[idx]
-        try:
-            graph = load_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin')[0][0]
-        except:
+            try:
+                graph = load_graphs(f'{self.raw_path}/graphs/graphs.' + str(idx) + '.bin')[0][0]
+            except:
+                graph = self.construct_graph(self.cells[idx])
+        else:
             graph = self.construct_graph(self.cells[idx])
+        label = self.label[idx]
         return graph, label
 
     def query(self, criteria, properties, i=0):
