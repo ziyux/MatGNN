@@ -59,7 +59,7 @@ class MaterialsProject(MatDataset):
             self.cells = self.data_saved['cells']
 
     def download(self):
-        raise NotImplementedError
+        pass
 
     def process(self):
         df = self.criteria
