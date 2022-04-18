@@ -1,6 +1,3 @@
-from dgl.data.utils import split_dataset
-from dgl.dataloading import GraphDataLoader
-
 
 def dataloader(dataset_name: str,
                label_name: str,
@@ -43,6 +40,9 @@ def get_dataset(dataset_name):
         return QM9
     elif dataset_name == 'MaterialsProject':
         from dataset_utils.MaterialsProject import MaterialsProject
+        return MaterialsProject
+    elif dataset_name == 'MaterialsProject_raw':
+        from dataset_utils.MaterialsProject_raw import MaterialsProject
         return MaterialsProject
     else:
         raise Warning('No corresponded datasetname found.')
